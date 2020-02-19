@@ -1,0 +1,119 @@
+AdapterRemoval ver. 2.2.1a
+Trimming of single-end reads
+
+
+[Adapter sequences]
+Adapter1[1]: AGATCGGAAGAGCACACGTCTGAACTCCAGTCACNNNNNNATCTCGTATGCCGTCTTCTGCTTG
+Adapter2[1]: AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT
+
+
+[Adapter trimming]
+RNG seed: NA
+Alignment shift value: 2
+Global mismatch threshold: 0.333333
+Quality format (input): Phred+33
+Quality score max (input): 41
+Quality format (output): Phred+33
+Quality score max (output): 41
+Mate-number separator (input): '/'
+Trimming Ns: Yes
+Trimming Phred scores <= 30: Yes
+Trimming using sliding windows: No
+Minimum genomic length: 35
+Maximum genomic length: 4294967295
+Collapse overlapping reads: No
+Minimum overlap (in case of collapse): 11
+Minimum adapter overlap: 0
+
+
+[Trimming statistics]
+Total number of reads: 36007430
+Number of unaligned reads: 27544387
+Number of well aligned reads: 8463043
+Number of discarded mate 1 reads: 20924
+Number of singleton mate 1 reads: 35986506
+Number of reads with adapters[1]: 8463043
+Number of retained reads: 35986506
+Number of retained nucleotides: 2689122951
+Average length of retained reads: 74.7259
+
+
+[Length distribution]
+Length	Mate1	Discarded	All
+0	0	18745	18745
+1	0	5	5
+2	0	2	2
+3	0	3	3
+4	0	4	4
+5	0	5	5
+6	0	11	11
+7	0	18	18
+8	0	109	109
+9	0	11	11
+10	0	57	57
+11	0	5	5
+12	0	27	27
+13	0	55	55
+14	0	26	26
+15	0	33	33
+16	0	15	15
+17	0	25	25
+18	0	26	26
+19	0	25	25
+20	0	37	37
+21	0	30	30
+22	0	47	47
+23	0	50	50
+24	0	51	51
+25	0	51	51
+26	0	51	51
+27	0	94	94
+28	0	106	106
+29	0	128	128
+30	0	141	141
+31	0	177	177
+32	0	204	204
+33	0	209	209
+34	0	341	341
+35	259	0	259
+36	269	0	269
+37	311	0	311
+38	349	0	349
+39	470	0	470
+40	556	0	556
+41	612	0	612
+42	613	0	613
+43	803	0	803
+44	894	0	894
+45	967	0	967
+46	995	0	995
+47	1151	0	1151
+48	1100	0	1100
+49	1314	0	1314
+50	1605	0	1605
+51	2286	0	2286
+52	3072	0	3072
+53	2740	0	2740
+54	4054	0	4054
+55	4308	0	4308
+56	4848	0	4848
+57	8955	0	8955
+58	13464	0	13464
+59	12645	0	12645
+60	30262	0	30262
+61	30883	0	30883
+62	44011	0	44011
+63	64521	0	64521
+64	137341	0	137341
+65	93369	0	93369
+66	132499	0	132499
+67	35109	0	35109
+68	71901	0	71901
+69	131479	0	131479
+70	240774	0	240774
+71	369126	0	369126
+72	975179	0	975179
+73	2515265	0	2515265
+74	5288179	0	5288179
+75	10843580	0	10843580
+76	14914388	0	14914388

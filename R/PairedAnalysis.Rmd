@@ -1,0 +1,994 @@
+---
+title: "Paired RNA-seq analysis"
+author: "Yang"
+date: "01/08/2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+### Setup
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+
+```{r packages}
+library(limma)
+library(edgeR)
+library(AnnotationHub)
+library(tidyverse)
+library(magrittr)
+library(pander)
+library(RColorBrewer)
+library(ggrepel)
+library(swfdr)
+library(qvalue)
+library(scales)
+library(here)
+library(variancePartition)
+library(org.Hs.eg.db)
+library(plyr)
+library(ggraph)
+library(tidygraph)
+library(fgsea)
+library(pheatmap)
+theme_set(theme_bw())
+panderOptions("big.mark", ",")
+panderOptions("table.split.table", Inf)
+panderOptions("table.style", "rmarkdown")
+if (interactive()) setwd(here::here("R"))
+```
+
+Annotation was set up as a EnsDb object based on Ensembl Release 96
+
+```{r ensDb, cache=TRUE}
+ah <- AnnotationHub() %>%
+  subset(species == "Danio rerio") %>%
+  subset(dataprovider == "Ensembl") %>%
+  subset(rdataclass == "EnsDb")
+ensDb <- ah[["AH69169"]]
+genes <- genes(ensDb)
+```
+
+
+
+Prior to count-level analysis, the initial dataset was pre-processed using the following steps:
+
+- Adapters were removed from any reads
+- Bases were removed from the end of reads when the quality score dipped below 30
+- Reads < 35bp after trimming were discarded
+
+After trimming alignment was performed using STAR v2.5.3a to the *Danio rerio* genome included in Ensembl Release 96 (GRCz11).
+Aligned reads were counted for each gene if the following criteria were satisfied:
+
+- Alignments were unique
+- Alignments strictly overlapped exonic regions
+
+```{r setThresholds}
+minSamples <- 6
+minCpm <- 1
+```
+
+
+```{r counts}
+counts <- file.path("../2_alignedData/featureCounts/genes.out") %>%
+	read_tsv() %>%
+	set_colnames(basename(colnames(.))) %>%
+	set_colnames(str_remove(colnames(.), "Aligned.+")) %>%
+  gather(key = "Library", value = "Counts", -Geneid) %>%
+  dplyr::mutate(Sample = str_remove_all(Library, "_2")) %>%
+  group_by(Geneid, Sample) %>%
+  dplyr::summarise(Counts = sum(Counts)) %>%
+  tidyr::spread(key = "Sample", value = "Counts") %>%
+  as.data.frame() %>%
+  column_to_rownames("Geneid") 
+genes2keep <- cpm(counts) %>%
+  is_greater_than(minCpm) %>%
+  rowSums() %>%
+  is_weakly_greater_than(minSamples)
+```
+
+Counts were then loaded and summed across replicate sequencing runs.
+Genes were only retained if receiving more than `r minCpm` cpm in at least `r minSamples` samples.
+This filtering step discarded `r comma(sum(!genes2keep))` genes as undetectable and retained `r comma(sum(genes2keep))` genes for further analysis.
+
+```{r plotDensities, fig.cap="Distribution of logCPM values for a) all and b) retained genes", fig.width = 4, fig.show='hold'}
+plotDensities(cpm(counts, log = TRUE), legend = FALSE, main = "a) All genes")
+plotDensities(cpm(counts[genes2keep,], log = TRUE), legend = FALSE, main = "b) Retained genes")
+```
+
+
+```{r dgeList}
+dgeList <- counts %>%
+  .[genes2keep,] %>%
+  DGEList(
+    samples = tibble(
+      sample = colnames(.),
+      group = str_replace_all(sample, "[0-9]*[A-Z]([12])Lardelli", "\\1"),
+      pair = str_replace_all(sample, "[0-9]*([A-Z])[0-9].+", "\\1")
+    ) %>%
+      as.data.frame(),
+		genes = genes[rownames(.)] %>%
+			as.data.frame() %>%
+			dplyr::select(
+				ensembl_gene_id = gene_id,
+				chromosome_name = seqnames,
+				description,
+				external_gene_name = gene_name
+			)
+	) %>%
+	calcNormFactors(method = "TMM") %>%
+	estimateDisp()
+dgeList$samples$Genotype <- c("Q96K97del/+", "WT")[dgeList$samples$group] %>%
+  factor(levels = c("WT", "Q96K97del/+"))
+```
+
+Counts were then formed into a DGEList object.
+Library sizes after alignment, counting and gene filtering ranged between `r pander(comma(range(dgeList$samples$lib.size)))` reads.
+
+### Data Inspection
+
+```{r v}
+v <- dgeList %>%
+	voomWithQualityWeights(design = matrix(1, nrow = ncol(.)))
+```
+
+```{r plotWeights, echo=FALSE, fig.cap = "Sample weights with the ideal equal weight of 1 shown as a horizontal line."}
+v$targets %>%
+	ggplot(aes(sample, sample.weights, fill = Genotype)) +
+	geom_bar(stat = "identity") +
+	geom_hline(yintercept = 1, colour = "blue", linetype = 2) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+```{r pca}
+pca <- v$E %>%
+    t() %>%
+    prcomp() 
+summary(pca)$importance %>% pander(split.tables = Inf)    
+```
+
+```{r plotPCA, echo=FALSE, fig.cap = "PCA of all samples. Point sizes indicate library sizes with the combination of PC1 & PC2 appearing to capture a considerable amount of this variation."}
+pca$x %>%
+	as.data.frame() %>%
+	rownames_to_column("sample") %>%
+	left_join(v$targets) %>%
+	ggplot(aes(PC1, PC2, colour = Genotype)) +
+	geom_point(aes(size = sample.weights)) +
+	geom_text_repel(aes(label = sample), show.legend = FALSE) +
+	labs(size = "Sample weight") +
+  xlab(paste0("PC1 (", percent(summary(pca)$importance[2,"PC1"]), ")")) +
+  ylab(paste0("PC2 (", percent(summary(pca)$importance[2,"PC2"]), ")")) +
+	theme(legend.title.align = 0.5)
+```
+
+psen1 expression checking
+
+```{r plotpsen1, echo=FALSE, fig.cap = "Expression of *psen1* across all samples."}
+dgeList %>%
+	cpm(log = TRUE) %>%
+	.["ENSDARG00000004870",] %>%
+	as.matrix() %>%
+	set_colnames("logCPM") %>%
+	cbind(dgeList$samples[rownames(.),]) %>%
+	ggplot(aes(sample, logCPM, fill = Genotype)) +
+	geom_bar(stat = "identity") +
+  facet_wrap(~Genotype, scales = "free_x") +
+  guides(fill = FALSE) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+rpl13 expression checking (house-keeping gene)
+
+```{r plotrpl13, echo=FALSE, fig.cap = "Expression of *rpl13* across all samples."}
+dgeList %>%
+	cpm(log = TRUE) %>%
+	.["ENSDARG00000099380",] %>%
+	as.matrix() %>%
+	set_colnames("logCPM") %>%
+	cbind(dgeList$samples[rownames(.),]) %>%
+	ggplot(aes(sample, logCPM, fill = Genotype)) +
+	geom_bar(stat = "identity") +
+  facet_wrap(~Genotype, scales = "free_x") +
+  guides(fill = FALSE) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+```{r plotsi:ch211-11p18.6, echo=FALSE, fig.cap = "Expression of *si:ch211-11p18.6* across all samples."}
+dgeList %>%
+	cpm(log = TRUE) %>%
+	.["ENSDARG00000077068",] %>%
+	as.matrix() %>%
+	set_colnames("logCPM") %>%
+	cbind(dgeList$samples[rownames(.),]) %>%
+	ggplot(aes(sample, logCPM, fill = Genotype)) +
+	geom_bar(stat = "identity") +
+  facet_wrap(~Genotype, scales = "free_x") +
+  guides(fill = FALSE) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+```{r plotbmp4, echo=FALSE, fig.cap = "Expression of *bmp4* across all samples."}
+dgeList %>%
+	cpm(log = TRUE) %>%
+	.["ENSDARG00000019995",] %>%
+	as.matrix() %>%
+	set_colnames("logCPM") %>%
+	cbind(dgeList$samples[rownames(.),]) %>%
+	ggplot(aes(sample, logCPM, fill = Genotype)) +
+	geom_bar(stat = "identity") +
+  facet_wrap(~Genotype, scales = "free_x") +
+  guides(fill = FALSE) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+```{r plotsi_ch211-213a13.2, echo=FALSE, fig.cap = "Expression of *si_ch211-213a13.2* across all samples."}
+dgeList %>%
+	cpm(log = TRUE) %>%
+	.["ENSDARG00000093024",] %>%
+	as.matrix() %>%
+	set_colnames("logCPM") %>%
+	cbind(dgeList$samples[rownames(.),]) %>%
+	ggplot(aes(sample, logCPM, fill = Genotype)) +
+	geom_bar(stat = "identity") +
+  facet_wrap(~Genotype, scales = "free_x") +
+  guides(fill = FALSE) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+```{r plottex11, echo=FALSE, fig.cap = "Expression of *tex11* across all samples."}
+dgeList %>%
+	cpm(log = TRUE) %>%
+	.["ENSDARG00000078995",] %>%
+	as.matrix() %>%
+	set_colnames("logCPM") %>%
+	cbind(dgeList$samples[rownames(.),]) %>%
+	ggplot(aes(sample, logCPM, fill = Genotype)) +
+	geom_bar(stat = "identity") +
+  facet_wrap(~Genotype, scales = "free_x") +
+  guides(fill = FALSE) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+
+```{r plotmdh1ab, echo=FALSE, fig.cap = "Expression of *mdh1ab* across all samples."}
+dgeList %>%
+	cpm(log = TRUE) %>%
+	.["ENSDARG00000103849",] %>%
+	as.matrix() %>%
+	set_colnames("logCPM") %>%
+	cbind(dgeList$samples[rownames(.),]) %>%
+	ggplot(aes(sample, logCPM, fill = Genotype)) +
+	geom_bar(stat = "identity") +
+  facet_wrap(~Genotype, scales = "free_x") +
+  guides(fill = FALSE) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+```{r plotCABZ01034698.2, echo=FALSE, fig.cap = "Expression of *CABZ01034698.2* across all samples."}
+dgeList %>%
+	cpm(log = TRUE) %>%
+	.["ENSDARG00000099511",] %>%
+	as.matrix() %>%
+	set_colnames("logCPM") %>%
+	cbind(dgeList$samples[rownames(.),]) %>%
+	ggplot(aes(sample, logCPM, fill = Genotype)) +
+	geom_bar(stat = "identity") +
+  facet_wrap(~Genotype, scales = "free_x") +
+  guides(fill = FALSE) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+###DGE Analysis
+
+To run a mixed-effects (nested) analysis we must use a voom object.
+Here we are looking at the change due to genotype within each pair. 
+We then look at the mean of the differences, instead of the difference in means.
+
+```{r voomData}
+voomData <- voom(dgeList, plot = FALSE)
+```
+
+```{r fm}
+fm <- ~ Genotype + (1|pair)
+contrMat <- getContrast(voomData, fm, voomData$targets, "GenotypeQ96K97del/+")
+```
+
+```{r runDream, cache=TRUE}
+library(doParallel)
+cl <- makeCluster(7)
+registerDoParallel(cl)
+fit <- dream(voomData, fm, voomData$targets, contrMat) %>% eBayes()
+# stop cluster
+stopCluster(cl)
+```
+
+```{r deGenes}
+deGenes <- topTable(fit, n = Inf) %>%
+  as_tibble() %>%
+  mutate(
+    q = qvalue(P.Value)$qvalues,
+    Sig = q < 0.05 & abs(logFC) > 0.7)
+deGenesTop <- deGenes %>%
+  dplyr::filter(q < 0.05)
+deGenesSig <- deGenes %>%
+  dplyr::filter(Sig == TRUE)
+```
+
+```{r volcano, echo=FALSE, fig.cap = "Volcano plot highlighting DE genes. Genes were considered as DE if receiving a q-value < 0.05 and with logFC beyond the range $\\pm 0.8$. Genes indicated in red below the blue line recieved a q-value < 0.1 and are of potential interest."}
+deGenes %>%
+  ggplot(aes(logFC, -log10(P.Value), colour = Sig)) +
+  geom_point() +
+  geom_text_repel(aes(label = external_gene_name), 
+					data = . %>% dplyr::filter(Sig)) +
+  geom_vline(xintercept = c(-1, 1)*0.7, linetype = 2, colour = "grey50") +
+  geom_hline(yintercept = deGenes %>%
+			   	dplyr::filter(q < 0.05) %>%
+			   	.[["P.Value"]] %>%
+			   	max() %>% 
+			   	log(10) %>%
+			   	multiply_by(-1), 
+			   linetype = 2, colour = "blue") +
+  scale_colour_manual(values = c(rgb(0.5, 0.5, 0.5, 0.5), "red")) +
+	scale_x_continuous(breaks = seq(-6, 6, by = 2)) +
+	theme(legend.position = "none")
+```
+
+```{r plotMA, echo=FALSE, fig.cap="logFC plotted against expression level with significant DE genes shown in red."}
+deGenes %>%
+	ggplot(aes(AveExpr, logFC)) +
+	geom_point(aes(colour = Sig), alpha = 0.5) +
+	geom_text_repel(aes(label = external_gene_name, colour = Sig), 
+					data = . %>% dplyr::filter(Sig | abs(logFC) > 3.5)) +
+  geom_smooth(se = FALSE) +
+	geom_hline(yintercept = c(-1, 1)*0.7, linetype = 2, colour = "grey50") +
+	labs(
+		x = "Average Expression (logCPM)",
+		y = "logFC"
+	) +
+	scale_colour_manual(values = c(rgb(0.5, 0.5, 0.5, 0.5), "red")) +
+	theme(legend.position = "none")
+```
+
+The `r sum(deGenes$Sig)` genes considered as DE using an FDR of 0.05 and logFC beyond the range $\pm 0.8$ were then inspected to confirm that the counts support their inclusion as DE.
+
+```{r plotCPM, echo=FALSE, fig.cap="Expression values for each of the potential DE genes using raw CPM values and a log-scale y-axis."}
+dgeList %>%
+	cpm(log = TRUE) %>%
+	.[dplyr::filter(deGenes, Sig)$ensembl_gene_id,] %>%
+	as.data.frame() %>%
+	rownames_to_column("ensembl_gene_id") %>%
+	as_tibble() %>%
+	gather(key = "sample", value = "CPM", -ensembl_gene_id) %>%
+	left_join(dgeList$samples) %>%
+	left_join(dgeList$genes) %>%
+  mutate(external_gene_name = case_when(
+    external_gene_name %in% dplyr::filter(deGenes, q < 0.05)$external_gene_name ~ paste0(external_gene_name, "**"),
+    !external_gene_name %in% dplyr::filter(deGenes, q < 0.05)$external_gene_name ~ external_gene_name
+  )) %>%
+	ggplot(aes(group, CPM)) +
+	geom_boxplot(aes(fill = group)) +
+	geom_jitter(width = 0.1) +
+	facet_wrap(~external_gene_name, scales = "free_y") +
+	# scale_y_log10() +
+	theme(legend.position = "none")
+```
+
+```{r DGE list, echo=FALSE}
+deGenes %>%
+	dplyr::slice(1:30) %>%
+	dplyr::select(-chromosome_name, -B, -Sig) %>%
+  dplyr::rename(FDR = adj.P.Val) %>%
+	mutate(description = gsub("([^\\[]*).+", "\\1", description)) %>%
+	pander(
+	  style = "rmarkdown",
+		justify = "lllrrrrrr",
+		caption = "Top 30 results from DGE analysis. FDR indicates the Benjamini-Hochberg FDR, whilst q-values represent the Storey FDR.")
+```
+
+###GO(Gene Ontology) analysis
+
+The first step here is to map the Ensembl zebrafish gene IDs to Human Entrez gene IDs.
+
+```{r ens2Entrez}
+ens2Entrez <- file.path("../R/mart_export_98.tsv") %>% 
+    read_tsv()
+goSummaries <- url("https://uofabioinformaticshub.github.io/summaries2GO/data/goSummaries.RDS") %>%
+  readRDS()
+```
+
+```{r}
+minLFC <- 0.5
+de <- deGenes %>%
+    dplyr::filter(q < 0.05 & abs(logFC) > minLFC) %>%
+    dplyr::select(`Gene stable ID` = ensembl_gene_id) %>%
+    left_join(ens2Entrez) %>%
+    dplyr::filter(!is.na(`NCBI gene ID`)) %>%
+    .[["NCBI gene ID"]] %>%
+    unique()
+uv <- deGenes %>%
+    dplyr::select(`Gene stable ID` = ensembl_gene_id) %>%
+    left_join(ens2Entrez) %>%
+    dplyr::filter(!is.na(`NCBI gene ID`)) %>%
+    .[["NCBI gene ID"]] %>%
+    unique()
+```
+
+```{R GO analysis}
+goResults <- goana(de = de, universe = uv, species = "Hs") %>% 
+    rownames_to_column("id") %>%
+    left_join(goSummaries) %>%
+    as_tibble() 
+```
+
+```{r enriched GO list}
+goResults %>%
+    dplyr::filter(shortest_path > 3, DE > 1) %>%
+    arrange(P.DE) %>%
+    mutate(adjP = p.adjust(P.DE, "bonferroni")) %>%
+    dplyr::filter(adjP < 0.05) %>%
+    pander(caption = "GO Terms potentially enriched in the set of differentially expressed genes")
+```
+
+
+```{r}
+get("GO:0007219", org.Hs.egGO2ALLEGS) %>% 
+  unique() %>%
+  as.numeric() %>%
+  as.data.frame() %>%
+  set_colnames("NCBI gene ID") %>%
+  left_join(ens2Entrez) %>%
+  left_join(deGenesTop, by = c("Gene stable ID" = "ensembl_gene_id")) %>%
+  dplyr::filter(!is.na(Sig))
+```
+
+```{r}
+get("GO:0008282", org.Hs.egGO2ALLEGS) %>% 
+  unique() %>%
+  as.numeric() %>%
+  as.data.frame() %>%
+  set_colnames("NCBI gene ID") %>%
+  left_join(ens2Entrez) %>%
+  left_join(deGenesTop, by = c("Gene stable ID" = "ensembl_gene_id")) %>%
+  dplyr::filter(!is.na(Sig))
+```
+
+###NOTCH signaling target gene enrichment
+```{r notch}
+NOTCH <- get("GO:0007219", org.Hs.egGO2ALLEGS) %>% 
+  unique() %>%
+  as.numeric() %>%
+  as.data.frame() %>%
+  set_colnames("NCBI gene ID") %>%
+  left_join(ens2Entrez) %>%
+  left_join(deGenes, by = c("Gene stable ID" = "ensembl_gene_id")) %>%
+  dplyr::filter(!is.na(q))
+```
+
+
+###Gene Set Enrichment analysis (GSEA)
+
+- All of the GSEA results are suggesting down-regulation, however, this doesn't seem feasible biologically
+- The distribution of t-statistics has a subtle negative bias. Is this influencing it?
+- Also the shoulders of the distribution are broader, without any change in the tails. Is there a problem with UV?
+- We need to run RUV, but setting it up for limma-voom (i.e. dream)
+
+```{r}
+deGenes$t %>% hist(breaks = 100)
+abline(v = c(0, mean(deGenes$t)), col = c("blue", "red"))
+```
+
+```{r convert ID}
+# Load id conversion file
+idConvert <- read_csv2("../files/zf2human_withEntrezIDs.csv") %>%
+  dplyr::select(Geneid = zfID, EntrezID = Entrez) %>%
+  mutate(EntrezID = as.character(EntrezID))
+# Create function to convert ids, but only keep the IDs in the voom object
+convertHsEG2Dr <- function(ids, df = idConvert){
+  dplyr::filter(df, EntrezID %in% ids)$Geneid %>%
+    intersect(rownames(v))
+}
+# Conversion of zebrafish ensembl ID to zebrafish symbol, for plotting on network analyses
+idConvertSymbol <- read_csv2("../files/zf2human_withEntrezIDs.csv") %>%
+  dplyr::select(label = zfID, symbol = zfName) %>%
+  na.omit() %>%
+  unique()
+```
+
+```{r setting ranks}
+# Create named vector of gene level statistics 
+ranks <- deGenes %>%
+  with(structure(t, names = ensembl_gene_id))
+```
+
+```{r setting hallmark/kegg/wiki}
+# Import hallmark human gene genesets and tidy gene set names
+# .gmt files downloaded from:
+# http://software.broadinstitute.org/gsea/downloads.jsp 
+# http://data.wikipathways.org/20190610/ 
+hallmark <- gmtPathways("../files/h.all.v6.2.entrez.gmt") %>%
+  mclapply(convertHsEG2Dr, mc.cores = 4) %>%
+  set_names(str_remove_all(names(.), "HALLMARK_"))
+kegg <- gmtPathways("../files/c2.cp.kegg.v6.2.entrez.gmt") %>%
+  mclapply(convertHsEG2Dr, mc.cores = 4) %>%
+  set_names(str_remove_all(names(.), "KEGG_"))
+wiki <- gmtPathways("../files/wikipathways-20190610-gmt-Homo_sapiens.gmt") %>%
+  mclapply(convertHsEG2Dr, mc.cores = 4) %>%
+  set_names(str_remove_all(names(.), "%.+"))
+```
+
+### Hallmark pathways
+
+```{r hallmark}
+# Set seed to enable reproducibility
+set.seed(22)
+# Run GSEA for hallmark
+fgseaHallmark <- fgsea(hallmark, ranks, nperm=1e5) %>%
+  as_tibble() %>%
+  dplyr::rename(FDR = padj) %>%
+  mutate(padj = p.adjust(pval, "bonferroni")) %>%
+  dplyr::arrange(pval)
+# Create an object of pathways with adjusted p-value < 0.05 for construction of network diagrams. This should be done differently next time, but too much work has been done to change it now.
+fgseaHallmarkTop <- fgseaHallmark %>%
+  dplyr::filter(padj < 0.05)
+fgseaHallmarkTop %>%
+  dplyr::select(-leadingEdge, -nMoreExtreme) %>%
+  pander(
+    style = "rmarkdown", 
+    split.tables = Inf, 
+    justify = "lrrrrrr", 
+    caption = paste(
+      "The", nrow(.), "most significantly enriched Hallmark pathways.",
+      "This corresponds to an FDR of", percent(max(.$FDR)))
+  )
+```
+
+```{r fig.align = "center"}
+# Make a table plot of significant Hallmark pathways
+if (interactive()) grid::grid.newpage()
+plotGseaTable(
+  hallmark[fgseaHallmarkTop$pathway], ranks, fgseaHallmark, gseaParam = 0.5
+)
+```
+
+```{r heatmapHallmark, eval=FALSE, include=FALSE}
+# Create heatmap of genes in Hallmark Xenobiotic Metabolism pathway
+dgeList %>%
+  cpm(log = TRUE) %>%
+  as.data.frame() %>%
+  dplyr::select(c("1B1Lardelli", "3D1Lardelli", "5F1Lardelli", "7G1Lardelli", "9H1Lardelli", "11I1Lardelli",
+                  "2B2Lardelli", "4D2Lardelli", "6F2Lardelli", "8G2Lardelli", "10H2Lardelli", "12I2Lardelli")) %>%
+  .[which(rownames(.) %in% hallmark$XENOBIOTIC_METABOLISM), ] %>%
+  t() %>%
+  pheatmap(cluster_rows = FALSE, cluster_cols = FALSE,
+           gaps_row = 5, show_colnames = FALSE, fontsize = 9,
+           fontsize_row = 10, border_color = NA,
+           main = "Expression levels of genes in Xenobiotic Metabolism pathway")
+```
+
+### KEGG pathways
+
+```{r KEGG}
+# Set seed to enable reproducibility
+set.seed(22)
+# Run GSEA for KEGG
+fgseaKEGG <- fgsea(kegg, ranks, nperm=1e5) %>%
+  as_tibble() %>%
+  dplyr::rename(FDR = padj) %>%
+  mutate(padj = p.adjust(pval, "bonferroni")) %>%
+  dplyr::arrange(pval)
+# Create an object of pathways with adjusted p-value < 0.05 for construction of network diagrams. This should be done differently next time, but too much work has been done to change it now.
+fgseaKEGGTop <- fgseaKEGG %>%
+  dplyr::filter(padj < 0.05)
+fgseaKEGGTop %>%
+  dplyr::select(-leadingEdge, -nMoreExtreme) %>%
+  pander(
+    style = "rmarkdown", 
+    split.tables = Inf, 
+    justify = "lrrrrrr", 
+    caption = paste(
+      "The", nrow(.), "most significantly enriched KEGG pathways.",
+      "This corresponds to an FDR of", percent(max(.$FDR)))
+  )
+```
+
+```{r fig.align = "center"}
+# Make a table plot of significant KEGG pathways
+if (interactive()) grid::grid.newpage()
+plotGseaTable(
+  kegg[fgseaKEGGTop$pathway], ranks, fgseaKEGG, gseaParam = 0.5
+)
+```
+
+```{r heatmapKEGG, eval=FALSE, include=FALSE}
+# Create heatmap of genes in KEGG Xenobiotic Metabolism pathway
+dgeList %>%
+  cpm(log = TRUE) %>%
+  as.data.frame() %>%
+  dplyr::select(c("1B1Lardelli", "3D1Lardelli", "5F1Lardelli", "7G1Lardelli", "9H1Lardelli", "11I1Lardelli",
+                  "2B2Lardelli", "4D2Lardelli", "6F2Lardelli", "8G2Lardelli", "10H2Lardelli", "12I2Lardelli")) %>%
+  .[which(rownames(.) %in% kegg$METABOLISM_OF_XENOBIOTICS_BY_CYTOCHROME_P450), ] %>%
+  t() %>%
+  pheatmap(cluster_rows = FALSE, cluster_cols = FALSE,
+           gaps_row = 5, show_colnames = FALSE, fontsize = 9,
+           fontsize_row = 10, border_color = NA,
+           main = "Expression levels of genes in KEGG Xenobiotic Metabolism pathway")
+```
+
+### WikiPathways
+
+```{r WikiPathways}
+# Set seed to enable reproducibility
+set.seed(22)
+# Run GSEA for WikiPathways
+fgseaWiki <- fgsea(wiki, ranks, nperm=1e5) %>%
+  as_tibble() %>%
+  dplyr::rename(FDR = padj) %>%
+  mutate(padj = p.adjust(pval, "bonferroni")) %>%
+  dplyr::arrange(pval)
+# Create an object of pathways with adjusted p-value < 0.05 for construction of network diagrams. This should be done differently next time, but too much work has been done to change it now.
+fgseaWikiTop <- fgseaWiki %>%
+  dplyr::filter(padj < 0.05)
+fgseaWikiTop %>%
+  dplyr::select(-leadingEdge, -nMoreExtreme) %>%
+  pander(
+    style = "rmarkdown", 
+    split.tables = Inf, 
+    justify = "lrrrrrr", 
+    caption = paste(
+      "The", nrow(.), "most significantly enriched Wiki pathways.",
+      "This corresponds to an FDR of", percent(max(.$FDR)))
+  )
+```
+
+```{r fig.align = "center"}
+# Make a table plot of significant WikiPathways pathways
+if (interactive()) grid::grid.newpage()
+plotGseaTable(
+  wiki[fgseaWikiTop$pathway], ranks, fgseaWiki, gseaParam = 0.5
+)
+```
+
+```{r heatmapWiki, eval=FALSE, include=FALSE}
+# Create heatmap of genes in WikiPathways oxphos pathway
+dgeList %>%
+  cpm(log = TRUE) %>%
+  as.data.frame() %>%
+  dplyr::select(c("1B1Lardelli", "3D1Lardelli", "5F1Lardelli", "7G1Lardelli", "9H1Lardelli", "11I1Lardelli",
+                  "2B2Lardelli", "4D2Lardelli", "6F2Lardelli", "8G2Lardelli", "10H2Lardelli", "12I2Lardelli")) %>%
+  .[which(rownames(.) %in% wiki$`Metapathway biotransformation Phase I and II`), ] %>%
+  t() %>%
+  pheatmap(cluster_rows = FALSE, cluster_cols = FALSE,
+           gaps_row = 5, show_colnames = FALSE, fontsize = 9,
+           fontsize_row = 10, border_color = NA,
+           main = "Expression levels of genes in Wikipathways Metapathway biotransformation Phase I and II pathway")
+```
+
+## Network Analysis
+
+### Hallmark network 
+
+```{r}
+# Load significant pathways with ONLY leading edge genes determined from GSEA analysis
+sigHallmark <-
+  fgseaHallmarkTop %>%
+  split(f = .$pathway) %>% 
+  lapply(extract2, "leadingEdge") %>% 
+  lapply(unlist)
+```
+
+```{r}
+# Create a node list
+pathwaysHallmark <- names(sigHallmark) %>%
+  as.data.frame() %>%
+  set_colnames("label") %>%
+  mutate(label = as.character(label))
+genesHallmark <- unique(unlist(sigHallmark)) %>% 
+  as.data.frame() %>% 
+  set_colnames("label") %>%
+  mutate(label = as.character(label))
+# degenesHallmark <- genesHallmark %>%
+#   dplyr::filter(label %in% deGenesTop$ensembl_gene_id)
+nodesHallmark <- full_join(pathwaysHallmark, genesHallmark, by = "label") %>%
+  rowid_to_column("id")
+# Then create an edge list
+edgesHallmark <- ldply(sigHallmark, data.frame) %>% 
+  set_colnames(c("pathway", "gene")) %>%
+  mutate(gene = as.character(gene)) %>%
+  left_join(nodesHallmark, by = c("pathway" = "label")) %>%
+  dplyr::rename(from = id) %>%
+  left_join(nodesHallmark, by = c("gene" = "label")) %>%
+  dplyr::rename(to = id) %>%
+  dplyr::select(from, to)
+```
+
+```{r fig.align = "center"}
+# Create tidygraph object
+# tidyHallmark <- 
+#   tbl_graph(nodes = nodesHallmark, edges = edgesHallmark, directed = FALSE) %>%
+#   activate(nodes) %>%
+#   left_join(idConvertSymbol, by = "label") %>%
+#   mutate(
+#     pathways = case_when(
+#       id <= nrow(fgseaHallmarkTop) ~ label
+#     ),
+#     DE = case_when(
+#       label %in% deGenesTop$ensembl_gene_id ~ symbol
+#     ),
+#     size = case_when(
+#       label %in% deGenesTop$ensembl_gene_id ~ 
+#         as.integer(row_number(label %in% deGenesTop$ensembl_gene_id)), 
+#       id <= nrow(fgseaHallmarkTop) ~ as.integer(4000)
+#     ),
+#     colour = case_when(
+#       id <= nrow(fgseaHallmarkTop) ~ rainbow(nrow(fgseaHallmarkTop))[id],
+#       label %in% deGenesTop$ensembl_gene_id ~ "black")  %>%
+#   activate(edges) %>%
+#   mutate(
+#     colour = case_when(
+#       from <= nrow(fgseaHallmarkTop) ~ rainbow(nrow(fgseaHallmarkTop))[from]
+#     )
+#   )
+#   )
+# # Set seed to enable reproducibility (seed selected to create graph with non-overlapping labels)
+# set.seed(22)
+# # Plot graph
+# ggraph(tidyHallmark, layout = "fr") +
+#   scale_fill_manual(
+#     values = c(rainbow(nrow(fgseaHallmarkTop)), "black"), 
+#     na.value = "gray80"
+#   ) +
+#   geom_edge_arc(
+#     aes(color = colour), 
+#     alpha = 0.5, 
+#     show.legend = FALSE, 
+#     curvature = 0.5
+#   ) +
+#   geom_node_point(
+#     aes(size = size, fill = colour),
+#     shape = 21,
+#     stroke = 0.5, 
+#     show.legend = FALSE
+#   ) +
+#   geom_node_label(
+#     aes(label = pathways),
+#     repel = TRUE,
+#     size = 3, 
+#     alpha = 0.7,
+#     label.padding = 0.1
+#   ) +
+#   # geom_node_text(
+#   #   aes(label = DE, hjust = hjust, vjust = vjust), 
+#   #   size = 3, 
+#   #   alpha = 0.8, 
+#   #   colour = "black"
+#   # ) +
+#   theme_graph() +
+#   theme(legend.position = "none")
+```
+
+### KEGG network
+
+```{r}
+# # Load significant pathways with ONLY leading edge genes determined from GSEA analysis
+# sigKEGG <- 
+#   fgseaKEGGTop %>%
+#   split(f = .$pathway) %>% 
+#   lapply(extract2, "leadingEdge") %>%
+#   lapply(unlist)
+# ```
+# 
+# ```{r}
+# # Create a node list
+# pathwaysKEGG <- names(sigKEGG) %>%
+#   as.data.frame() %>%
+#   set_colnames("label") %>%
+#   mutate(label = as.character(label))
+# genesKEGG <- unique(unlist(sigKEGG)) %>% 
+#   as.data.frame() %>% 
+#   set_colnames("label") %>%
+#   mutate(label = as.character(label))
+# nodesKEGG <- full_join(pathwaysKEGG, genesKEGG, by = "label") %>%
+#   rowid_to_column("id")
+# # Then create an edge list
+# edgesKEGG <- ldply(sigKEGG, data.frame) %>% 
+#   set_colnames(c("pathway", "gene")) %>%
+#   mutate(gene = as.character(gene)) %>%
+#   left_join(nodesKEGG, by = c("pathway" = "label")) %>%
+#   dplyr::rename(from = id) %>%
+#   left_join(nodesKEGG, by = c("gene" = "label")) %>%
+#   dplyr::rename(to = id) %>%
+#   dplyr::select(from, to)
+# ```
+# 
+# ```{r fig.align = "center"}
+# # Create tidygraph object
+# tidyKEGG <- 
+#   tbl_graph(nodes = nodesKEGG, edges = edgesKEGG, directed = FALSE) %>%
+#   activate(nodes) %>%
+#   left_join(idConvertSymbol, by = "label") %>%
+#   mutate(
+#     pathways = case_when(
+#       id <= nrow(fgseaKEGGTop) ~ label
+#     ),
+#     DE = case_when(label %in% deGenes$ensembl_gene_id ~ symbol),
+#     size = case_when(
+#       label %in% deGenes$ensembl_gene_id ~ row_number(label %in% deGenes$ensembl_gene_id), 
+#       id <= nrow(fgseaKEGGTop) ~ 4000L
+#     ) %>% as.integer(),
+#     colour = case_when(
+#       id <= nrow(fgseaKEGGTop) ~ rainbow(nrow(fgseaKEGGTop))[id],
+#       label %in% deGenes$ensembl_gene_id ~ "black"
+#     ),
+#   ) %>%
+#   activate(edges) %>%
+#   mutate(
+#     colour = case_when(
+#       from <= nrow(fgseaKEGGTop) ~ rainbow(nrow(fgseaKEGGTop))[from]
+#     )
+#   )
+# # Set seed to enable reproducibility (seed selected to create graph with non-overlapping labels)
+# set.seed(26)
+# # Plot graph
+# ggraph(tidyKEGG, layout = "fr") +
+#   scale_fill_manual(
+#     values = c(rainbow(nrow(fgseaKEGGTop)), "black"), 
+#     na.value = "gray80"
+#   ) +
+#   geom_edge_arc(
+#     aes(color = colour), 
+#     alpha = 0.5, 
+#     show.legend = FALSE, 
+#     curvature = 0.5
+#   ) +
+#   geom_node_point(
+#     aes(size = size, fill = colour), 
+#     shape = 21, 
+#     stroke = 0.5, 
+#     show.legend = FALSE
+#   ) +
+#   geom_node_label(
+#     aes(label = pathways),
+#     repel = TRUE, 
+#     size = 3, 
+#     alpha = 0.7, 
+#     label.padding = 0.1
+#   ) +
+#   # geom_node_text(
+#   #   aes(label = DE, hjust = hjust, vjust = vjust), 
+#   #   repel = TRUE,
+#   #   size = 3,
+#   #   alpha = 0.8, 
+#   #   colour = "black"
+#   # ) +
+#   theme_graph() +
+#   theme(legend.position = "none")
+```
+
+### WikiPathways network
+
+```{r}
+# Load significant pathways with ONLY leading edge genes determined from GSEA analysis
+sigWiki <- 
+  fgseaWikiTop %>%
+  split(f = .$pathway) %>% 
+  lapply(extract2, "leadingEdge") %>% 
+  lapply(unlist)
+```
+
+```{r}
+# Create a node list
+pathwaysWiki <- names(sigWiki) %>%
+  as.data.frame() %>%
+  set_colnames("label") %>%
+  mutate(label = as.character(label))
+genesWiki <- unique(unlist(sigWiki)) %>% 
+  as.data.frame() %>% 
+  set_colnames("label") %>%
+  mutate(label = as.character(label))
+nodesWiki <- full_join(pathwaysWiki, genesWiki, by = "label") %>%
+  rowid_to_column("id")
+# Then create an edge list
+edgesWiki <- ldply(sigWiki, data.frame) %>% 
+  set_colnames(c("pathway", "gene")) %>%
+  mutate(gene = as.character(gene)) %>%
+  left_join(nodesWiki, by = c("pathway" = "label")) %>%
+  dplyr::rename(from = id) %>%
+  left_join(nodesWiki, by = c("gene" = "label")) %>%
+  dplyr::rename(to = id) %>%
+  dplyr::select(from, to)
+```
+
+```{r fig.align = "center"}
+# Create tidygraph object
+# tidyWiki <- 
+#   tbl_graph(nodes = nodesWiki, edges = edgesWiki, directed = FALSE) %>%
+#   activate(nodes) %>%
+#   left_join(idConvertSymbol, by = "label") %>%
+#   mutate(
+#     pathways = case_when(
+#       id <= nrow(fgseaWikiTop) ~ label
+#     ),
+#     DE = case_when(
+#       label %in% deGenes$ensembl_gene_id ~ symbol
+#     ),
+#     size = case_when(
+#       label %in% deGenes$ensembl_gene_id ~ 
+#         as.integer(row_number(label %in% deGenes$ensembl_gene_id)), 
+#       id <= nrow(fgseaWikiTop) ~ as.integer(4000)
+#     ),
+#     colour = case_when(
+#       id <= nrow(fgseaWikiTop) ~ rainbow(nrow(fgseaWikiTop))[id],
+#       label %in% deGenes$ensembl_gene_id ~ "black"
+#     ),
+#     # hjust = case_when(
+#     #   DE == "ugt5b4" ~ as.integer(1),
+#     #   DE == "blvrb" ~ as.integer(2)
+#     # ),
+#     # vjust = case_when(
+#     #   DE == "ugt5b4" ~ as.integer(7),
+#     #   DE == "blvrb" ~ as.integer(7)
+#     # )
+#   ) %>%
+#   activate(edges) %>%
+#   mutate(
+#     colour = case_when(
+#       from <= nrow(fgseaWikiTop) ~ rainbow(nrow(fgseaWikiTop))[from]
+#     )
+#   )
+# # Set seed to enable reproducibility (seed selected to create graph with non-overlapping labels)
+# set.seed(27)
+# # Plot graph
+# ggraph(tidyWiki, layout = "fr") +
+#   scale_fill_manual(
+#     values = c(rainbow(nrow(fgseaWikiTop)), "black"), 
+#     na.value = "gray80"
+#   ) +
+#   geom_edge_arc(
+#     aes(color = colour), 
+#     alpha = 0.5, 
+#     show.legend = FALSE, 
+#     curvature = 0.5
+#   ) +
+#   geom_node_point(
+#     aes(size = size, fill = colour), 
+#     shape = 21, 
+#     stroke = 0.5, 
+#     show.legend = FALSE
+#   ) +
+#   geom_node_label(
+#     aes(label = pathways), 
+#     repel = TRUE, 
+#     size = 3, 
+#     alpha = 0.7, 
+#     label.padding = 0.1
+#   ) +
+#   # geom_node_text(
+#   #   aes(label = DE, hjust = hjust, vjust = vjust), 
+#   #   repel = TRUE, 
+#   #   size = 3, 
+#   #   alpha = 0.8, 
+#   #   colour = "black"
+#   # ) +
+#   theme_graph() +
+#   theme(legend.position = "none")
+```
+
+
+
+##compare with 6 Month data
+```{r}
+
+
+```
+
+
+
+##IRE enrichment
+
+# Session Info
+
+```{r}
+pander(sessionInfo())
+```

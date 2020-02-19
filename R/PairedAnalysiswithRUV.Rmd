@@ -1,0 +1,1217 @@
+---
+title: "Paired RNA-seq analysis with RUV"
+author: "Yang & Steve"
+date: "01/08/2019"
+output: 
+  html_document: 
+    toc: yes
+    toc_float: yes
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+### Setup
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+
+```{r packages}
+library(limma)
+library(biomaRt)
+library(edgeR)
+library(AnnotationHub)
+library(tidyverse)
+library(magrittr)
+library(pander)
+library(RColorBrewer)
+library(ggrepel)
+library(swfdr)
+library(qvalue)
+library(scales)
+library(here)
+library(variancePartition)
+library(org.Hs.eg.db)
+library(plyr)
+library(ggraph)
+library(tidygraph)
+library(fgsea)
+library(pheatmap)
+library(RUVSeq)
+library(GenomicRanges)
+library(cqn)
+library(kableExtra)
+library(goseq)
+library(org.Dr.eg.db)
+library(pathview)
+theme_set(theme_bw())
+panderOptions("big.mark", ",")
+panderOptions("table.split.table", Inf)
+panderOptions("table.style", "rmarkdown")
+if (interactive()) setwd(here::here("R"))
+```
+
+```{R GC content & lengths information}
+# Get GC content and lengths
+gcTrans <- url("https://uofabioinformaticshub.github.io/Ensembl_GC/Release96/Danio_rerio.GRCz11.96.rds") %>%
+  readRDS()
+# Convert to the gene-level with average length, average GC, max length, and GC of longest transcript for all transcripts assigned to a single gene.
+# gcGene <- gcTrans %>%
+#   split(f = .$gene_id) %>%
+#   mclapply(function(x){
+#     gr <- reduce(x)
+#     df <- DataFrame(
+#       gene_id = unique(x$gene_id),
+#       gene_symbol = unique(x$gene_symbol),
+#       aveLength = round(mean(x$length),0) %>% as.integer(),
+#       aveGc = sum(x$length * x$gc) / sum(x$length),
+#       maxLength = max(x$length),
+#       longestGc = x$gc[which.max(x$length)[[1]]]
+#     )
+#     mcols(gr) <- df
+#     gr
+#   }, mc.cores = 4) %>%
+#   GRangesList() %>%
+#   unlist() %>%
+#   na.omit()
+# x# This takes a reasonable amount of time
+# # Save as .rds file for faster loading
+# saveRDS(gcGene, file = "../R/gcGene.rds")
+gcGene <- readRDS("../R/gcGene.rds")
+```
+
+Annotation was set up as a EnsDb object based on Ensembl Release 96
+
+```{r ensDb, cache=TRUE}
+ah <- AnnotationHub() %>%
+  subset(species == "Danio rerio") %>%
+  subset(dataprovider == "Ensembl") %>%
+  subset(rdataclass == "EnsDb")
+ensDb <- ah[["AH69169"]]
+genes <- genes(ensDb)
+transGR <- transcripts(ensDb)
+mcols(genes) <- mcols(genes)[c("gene_id", "gene_name", 
+                                   "gene_biotype", "entrezid","description")] %>%
+  as.data.frame() %>%
+  dplyr::select(-entrezid) %>%
+  left_join(as.data.frame(mcols(gcGene))) %>%
+  distinct(gene_id, .keep_all = TRUE) %>%
+  set_rownames(.$gene_id) %>%
+  DataFrame() %>%
+  .[names(genes),]
+genesGR <- genes(ensDb)
+DrEns2Symbol <- genesGR %>%
+    mcols() %>%
+    as_tibble() %>%
+    dplyr::select(gene_id, gene_name)
+```
+
+Prior to count-level analysis, the initial dataset was pre-processed using the following steps:
+
+- Adapters were removed from any reads
+- Bases were removed from the end of reads when the quality score dipped below 30
+- Reads < 35bp after trimming were discarded
+
+After trimming alignment was performed using STAR v2.5.3a to the *Danio rerio* genome included in Ensembl Release 96 (GRCz11).
+Aligned reads were counted for each gene if the following criteria were satisfied:
+
+- Alignments were unique
+- Alignments strictly overlapped exonic regions
+
+```{r setThresholds}
+minSamples <- 6
+minCpm <- 1
+```
+
+```{r counts}
+counts <- file.path("../2_alignedData/featureCounts/genes.out") %>%
+	read_tsv() %>%
+	set_colnames(basename(colnames(.))) %>%
+	set_colnames(str_remove(colnames(.), "Aligned.+")) %>%
+  gather(key = "Library", value = "Counts", -Geneid) %>%
+  dplyr::mutate(Sample = str_remove_all(Library, "_2")) %>%
+  group_by(Geneid, Sample) %>%
+  dplyr::summarise(Counts = sum(Counts)) %>%
+  tidyr::spread(key = "Sample", value = "Counts") %>%
+  as.data.frame() %>%
+  column_to_rownames("Geneid") 
+genes2keep <- cpm(counts) %>%
+  is_greater_than(minCpm) %>%
+  rowSums() %>%
+  is_weakly_greater_than(minSamples)
+```
+
+Counts were then loaded and summed across replicate sequencing runs.
+Genes were only retained if receiving more than `r minCpm` cpm in at least `r minSamples` samples.
+This filtering step discarded `r comma(sum(!genes2keep))` genes as undetectable and retained `r comma(sum(genes2keep))` genes for further analysis.
+
+```{r plotDensities, fig.cap="Distribution of logCPM values for a) all and b) retained genes", fig.width = 4, fig.show='hold'}
+plotDensities(cpm(counts, log = TRUE), legend = FALSE, main = "a) All genes")
+plotDensities(cpm(counts[genes2keep,], log = TRUE), legend = FALSE, main = "b) Retained genes")
+```
+
+```{r dgeList}
+dgeList <- counts %>%
+  .[genes2keep,] %>%
+  DGEList(
+    samples = tibble(
+      sample = colnames(.),
+      group = str_replace_all(sample, "[0-9]*[A-Z]([12])Lardelli", "\\1"),
+      pair = str_replace_all(sample, "[0-9]*([A-Z])[0-9].+", "\\1")
+    ) %>%
+      as.data.frame(),
+		genes = genes[rownames(.)] %>%
+			as.data.frame() %>%
+			dplyr::select(
+				ensembl_gene_id = gene_id,
+				chromosome_name = seqnames,
+				description,
+				external_gene_name = gene_name,
+				aveLength,
+				aveGc,
+				maxLength,
+				longestGc
+			)
+	) %>%
+	calcNormFactors(method = "TMM") %>%
+	estimateDisp()
+dgeList$samples$Genotype <- c("Q96K97del/+", "WT")[dgeList$samples$group] %>%
+  factor(levels = c("WT", "Q96K97del/+"))
+```
+
+Counts were then formed into a DGEList object.
+Library sizes after alignment, counting and gene filtering ranged between `r pander(comma(range(dgeList$samples$lib.size)))` reads.
+
+### Data Inspection
+
+```{r v}
+v <- dgeList %>%
+	voomWithQualityWeights(design = matrix(1, nrow = ncol(.)))
+```
+
+```{r plotWeights, echo=FALSE, fig.cap = "Sample weights with the ideal equal weight of 1 shown as a horizontal line."}
+v$targets %>%
+	ggplot(aes(sample, sample.weights, fill = Genotype)) +
+	geom_bar(stat = "identity") +
+	geom_hline(yintercept = 1, colour = "blue", linetype = 2) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+```{r pca}
+pca <- v$E %>%
+    t() %>%
+    prcomp() 
+summary(pca)$importance %>% pander(split.tables = Inf)    
+```
+
+```{r plotPCA, echo=FALSE, fig.cap = "PCA of all samples. Point sizes indicate library sizes with the combination of PC1 & PC2 appearing to capture a considerable amount of this variation."}
+pca$x %>%
+	as.data.frame() %>%
+	rownames_to_column("sample") %>%
+	left_join(v$targets) %>%
+	ggplot(aes(PC1, PC2, colour = Genotype)) +
+	geom_point(aes(size = sample.weights)) +
+	geom_text_repel(aes(label = sample), show.legend = FALSE) +
+	labs(size = "Sample weight") +
+  xlab(paste0("PC1 (", percent(summary(pca)$importance[2,"PC1"]), ")")) +
+  ylab(paste0("PC2 (", percent(summary(pca)$importance[2,"PC2"]), ")")) +
+	theme(legend.title.align = 0.5)
+```
+
+###DGE Analysis
+
+To run a mixed-effects (nested) analysis we must use a voom object.
+Here we are looking at the change due to genotype within each pair. 
+We then look at the mean of the differences, instead of the difference in means.
+
+```{r voomData}
+voomData <- voom(dgeList, plot = FALSE)
+```
+
+```{r fm}
+fm <- ~ Genotype + (1|pair)
+contrMat <- getContrast(voomData, fm, voomData$targets, "GenotypeQ96K97del/+")
+```
+
+```{r runDream, cache=TRUE}
+library(doParallel)
+cl <- makeCluster(7)
+registerDoParallel(cl)
+fit <- dream(voomData, fm, voomData$targets, contrMat) %>% eBayes()
+# stop cluster
+stopCluster(cl)
+```
+
+```{r deGenes}
+deGenes <- topTable(fit, n = Inf) %>%
+  as_tibble() %>%
+  mutate(
+    q = qvalue(P.Value)$qvalues,
+    Sig = q < 0.05) %>%
+  dplyr::select(
+    ensembl_gene_id, external_gene_name, logFC, t,
+  P.Value, Sig, q, aveGc, aveLength, maxLength, longestGc,AveExpr)
+head(deGenes)
+deGenesSig <- deGenes %>%
+  dplyr::filter(Sig == TRUE)
+```
+
+```{r volcano, echo=FALSE, fig.cap = "Volcano plot highlighting DE genes. Genes indicated in red belowd were considered as DE, which receive a q-value < 0.05."}
+deGenes %>%
+  ggplot(aes(logFC, -log10(P.Value), colour = Sig)) +
+  geom_point() +
+  geom_text_repel(aes(label = external_gene_name), 
+					data = . %>% dplyr::filter(q < 0.05 & abs(logFC) > 0.7)) +
+  geom_vline(xintercept = c(-1, 1)*0.5, linetype = 2, colour = "grey50") +
+  geom_hline(yintercept = deGenes %>%
+			   	dplyr::filter(q < 0.05) %>%
+			   	.[["P.Value"]] %>%
+			   	max() %>% 
+			   	log(10) %>%
+			   	multiply_by(-1), 
+			   linetype = 2, colour = "blue") +
+  scale_colour_manual(values = c(rgb(0.5, 0.5, 0.5, 0.5), "red")) +
+	scale_x_continuous(breaks = seq(-6, 6, by = 2)) +
+	theme(legend.position = "none")
+```
+
+```{r plotMA, echo=FALSE, fig.cap="logFC plotted against expression level with significant DE genes shown in red."}
+deGenes %>%
+	ggplot(aes(AveExpr, logFC)) +
+	geom_point(aes(colour = Sig), alpha = 0.5) +
+	geom_text_repel(aes(label = external_gene_name, colour = Sig), 
+					data = . %>% dplyr::filter(Sig & abs(logFC) > 0.7)) +
+  geom_smooth(se = FALSE) +
+	geom_hline(yintercept = c(-1, 1)*0.5, linetype = 2, colour = "grey50") +
+	labs(
+		x = "Average Expression (logCPM)",
+		y = "logFC"
+	) +
+	scale_colour_manual(values = c(rgb(0.5, 0.5, 0.5, 0.5), "red")) +
+	theme(legend.position = "none")
+```
+
+###RUV treatment (Remove Unwanted Variation)
+# Find some 'unchanged' genes. Grab the lowest ranked 5000
+```{r}
+genes4Control <- deGenes %>%
+  arrange(desc(P.Value)) %>%
+  dplyr::slice(1:5000) %>%
+  .[["ensembl_gene_id"]]
+length(genes4Control)
+```
+
+```{r RUV}
+k <- 1
+ruv <- RUVg(
+  dgeList$counts, 
+  cIdx = genes4Control,
+  k = k, 
+  isLog = FALSE,
+  round = TRUE
+)
+dgeList$samples <- cbind(dgeList$samples, ruv$W)
+```
+
+```{r plotPCA 2}
+pcaRUV <- ruv$normalizedCounts %>%
+  cpm(log = TRUE) %>%
+  t() %>%
+  prcomp() 
+summary(pcaRUV)$importance %>% pander(split.tables = Inf)    
+pcaRUV$x %>%
+  cbind(dgeList$samples[rownames(.),]) %>%
+  ggplot(aes(PC1, PC2, colour = Genotype)) +
+  geom_point() +
+  stat_ellipse(aes(fill = Genotype), geom = "polygon", alpha = 0.2) +
+  xlab(
+    paste0(
+      "PC1 (", percent(summary(pcaRUV)$importance[2, "PC1"]), ")"
+    )
+  ) +
+  ylab(
+    paste0(
+      "PC2 (", percent(summary(pcaRUV)$importance[2, "PC2"]), ")"
+    )
+  )
+```
+
+## Setup a design matrix using each pool as its own intercept, with the genotype as the common difference
+```{r}
+expDesign <- model.matrix(~0 + pair + Genotype + W_1, dgeList$samples) %>%
+  set_colnames(str_replace(colnames(.), pattern = "Genotype.+", "Mutant"))
+```
+
+## Recalculate the dispersions
+```{r}
+dgeList %<>%
+  estimateGLMCommonDisp(expDesign) %>%
+  estimateGLMTagwiseDisp(expDesign)
+```
+
+## Now run DE Analysis after RUV
+```{r topTable}
+topTable <- dgeList %>%
+  glmFit(expDesign) %>%
+  glmLRT(coef = "Mutant") %>%
+  topTags(n = Inf) %>%
+  as.data.frame() %>%
+  set_colnames(gsub("ID.", "", colnames(.))) %>%
+  as_tibble() %>%
+  mutate(
+    DE = FDR < 0.01,
+    rankstat = -sign(logFC)*log10(PValue)
+  ) %>%
+  dplyr::select(
+    ensembl_gene_id, external_gene_name, logFC, logCPM, LR,
+  PValue, FDR, DE,aveGc, aveLength, rankstat
+  ) %>%
+  arrange(PValue)
+topTableDE <- topTable %>%
+  dplyr::filter(DE == TRUE)
+
+write.csv(topTableDE,"../R/DEgenes.csv")
+```
+
+## Check the MA plot
+```{r plotMA 2}
+tested <- c("si:ch211-213a13.2", "si:ch211-11p18.6", "mdh1ab", "CABZ01034698.2")
+# topTable %>%
+topTable %>%
+  ggplot(aes(logCPM, logFC)) +
+  geom_point(aes(colour = DE), alpha = 0.5) +
+  geom_smooth(se = FALSE) +
+  geom_hline(yintercept = c(-1, 1)*0.5, linetype = 2) +
+  geom_text_repel(
+    aes(label = external_gene_name, colour = DE),
+    data = . %>%
+      dplyr::filter(abs(logFC) > 1.2 & DE | external_gene_name %in% tested),
+    show.legend = FALSE
+  ) +
+  scale_colour_manual(values = c("grey50", "red"))
+```
+
+## Check the volcano plot
+```{r plotvolcano}
+topTable %>%
+  mutate(DE = FDR < 0.01) %>%
+  ggplot(aes(logFC, -log10(PValue))) +
+  geom_point(aes(colour = DE), alpha = 0.5) +
+  geom_vline(xintercept = c(-1, 1)*0.5, linetype = 2) +
+  geom_text_repel(
+    aes(label = external_gene_name, colour = DE),
+    data = . %>%
+      dplyr::filter(abs(logFC) > 1.2 & DE | external_gene_name %in% tested),
+    show.legend = FALSE
+  ) +
+  scale_colour_manual(values = c("grey50", "red"))
+```
+
+## Compare the two lists
+```{r}
+topTable %>%
+  dplyr::select(ensembl_gene_id, RUV = logFC, DE) %>%
+  left_join(deGenes) %>%
+  dplyr::rename(Voom = logFC) %>%
+  mutate(
+    Status = case_when(
+      Sig & DE ~ "Both",
+      Sig & !DE ~ "Voom Only",
+      !Sig & DE ~ "RUV Only",
+      !Sig & !DE ~ "Not DE"
+    )
+  ) %>%
+  ggplot(aes(Voom, RUV,)) +
+  geom_point(aes(colour = Status), alpha = 0.5) +
+  geom_abline(slope= 1, linetype = 2) +
+  geom_vline(xintercept = c(-1, 1)*0.5) +
+  geom_hline(yintercept = c(-1, 1)*0.5) +
+  scale_colour_manual(values = c("green", "grey50", "red", "blue"))
+```
+
+The `r sum(topTable$DE)` genes considered as DE using an FDR of 0.01 and logFC beyond the range $\pm 0.5$ were then inspected to confirm that the counts support their inclusion as DE.
+
+Here plot CPM for DE genes having a FDR below 0.01 and logFC beyond the range $\pm 1.2$
+
+```{r plotCPM, echo=FALSE, fig.cap="Expression values for each of the potential DE genes using raw CPM values and a log-scale y-axis."}
+dgeList %>%
+	cpm(log = TRUE) %>%
+	.[dplyr::filter(topTable, FDR < 0.01 & abs(logFC) > 1.2)$ensembl_gene_id,] %>%
+	as.data.frame() %>%
+	rownames_to_column("ensembl_gene_id") %>%
+	as_tibble() %>%
+	gather(key = "sample", value = "CPM", -ensembl_gene_id) %>%
+	left_join(dgeList$samples) %>%
+	left_join(dgeList$genes) %>%
+	ggplot(aes(group, CPM)) +
+	geom_boxplot(aes(fill = group)) +
+	geom_jitter(width = 0.1) +
+	facet_wrap(~external_gene_name, scales = "free_y") +
+	theme(legend.position = "none")
+```
+
+#GC content before RUV
+```{r}
+deGenes %>%
+  dplyr::arrange(desc(P.Value)) %>%
+  dplyr::filter(!is.na(aveGc)) %>%
+  ggplot(aes(aveGc, logFC)) +
+  geom_point(aes(colour = Sig), alpha = 0.5, show.legend = FALSE) +
+  geom_smooth(se = FALSE) +
+  labs(
+    x = "GC Content"
+  ) +
+  scale_color_manual(values = c("grey70", "red"))
+```
+
+```{r}
+deGenes %>%
+  dplyr::arrange(desc(P.Value)) %>%
+  dplyr::filter(!is.na(aveGc)) %>%
+  ggplot(aes(aveGc, t)) +
+  geom_point(aes(colour = Sig), alpha = 0.5, show.legend = FALSE) +
+  geom_smooth(se = FALSE) +
+  labs(
+    x = "GC Content",
+    y = "Ranking Statistic"
+  ) +
+  scale_color_manual(values = c("grey70", "red"))
+```
+
+#Gene length before RUV
+```{r}
+deGenes %>%
+  dplyr::arrange(desc(P.Value)) %>%
+  dplyr::filter(!is.na(aveGc)) %>%
+  ggplot(aes(aveLength, logFC)) +
+  geom_point(aes(colour = Sig), alpha = 0.5, show.legend = FALSE) +
+  geom_smooth(se = FALSE) +
+  labs(
+    x = "Gene length",
+    title = "without cqn"
+  ) +
+  scale_color_manual(values = c("grey70", "red")) +
+  scale_x_log10(labels = comma)
+```
+
+```{r}
+deGenes %>%
+  dplyr::arrange(desc(P.Value)) %>%
+  dplyr::filter(!is.na(aveGc)) %>%
+  ggplot(aes(aveLength, t)) +
+  geom_point(aes(colour = Sig), alpha = 0.5, show.legend = FALSE) +
+  geom_smooth(se = FALSE) +
+  labs(
+    x = "Gene Length",
+    y = "Ranking Statistic",
+    title = "without cqn"
+  ) +
+  scale_color_manual(values = c("grey70", "red")) +
+  scale_x_log10(labels = comma)
+```
+
+#GC content after RUV
+```{r}
+topTable %>%
+  dplyr::arrange(desc(PValue)) %>%
+  dplyr::filter(!is.na(aveGc)) %>%
+  ggplot(aes(aveGc, logFC)) +
+  geom_point(aes(colour = DE), alpha = 0.5, show.legend = FALSE) +
+  geom_smooth(se = FALSE) + 
+  labs(
+    x = "GC Content"
+  ) +
+  scale_color_manual(values = c("grey70", "red"))
+```
+
+```{r}
+topTable %>%
+  dplyr::arrange(desc(PValue)) %>%
+  dplyr::filter(!is.na(aveGc)) %>%
+  ggplot(aes(aveGc, rankstat)) +
+  geom_point(aes(colour = DE), alpha = 0.5, show.legend = FALSE) +
+  ylim(-10, 10) +
+  geom_smooth(se = FALSE) + 
+  labs(
+    x = "GC Content", 
+    y = "Ranking Statistic"
+  ) +
+  scale_color_manual(values = c("grey70", "red"))
+```
+
+#Gene length after RUV
+```{r}
+topTable %>%
+  dplyr::arrange(desc(PValue)) %>%
+  dplyr::filter(!is.na(aveGc)) %>%
+  ggplot(aes(aveLength, logFC)) +
+  geom_point(aes(colour = DE), alpha = 0.5, show.legend = FALSE) +
+  geom_smooth(se = FALSE) + 
+  labs(
+    x = "Gene length",
+    title = "without cqn"
+  ) +
+  scale_color_manual(values = c("grey70", "red")) +
+  scale_x_log10(labels = comma)
+```
+
+```{r}
+topTable %>%
+  dplyr::arrange(desc(PValue)) %>%
+  dplyr::filter(!is.na(aveGc)) %>%
+  ggplot(aes(aveLength, rankstat)) +
+  geom_point(aes(colour = DE), alpha = 0.5, show.legend = FALSE) +
+  ylim(-10, 10) +
+  geom_smooth(se = FALSE) + 
+  labs(
+    x = "Gene Length", 
+    y = "Ranking Statistic",
+    title = "without cqn"
+  ) +
+  scale_color_manual(values = c("grey70", "red")) +
+  scale_x_log10(labels = comma)
+```
+
+###GO(Gene Ontology) analysis
+
+The first step here is to map the Ensembl zebrafish gene IDs to Human Entrez gene IDs.
+
+```{r goSummaries}
+goSummaries <- url("https://uofabioinformaticshub.github.io/summaries2GO/data/goSummaries.RDS") %>%
+  readRDS()
+```
+
+```{r convert ID}
+# Load id conversion file
+idConvert <- read_csv2("../files/zf2human_withEntrezIDs.csv") %>%
+  dplyr::select(Geneid = zfID, EntrezID = Entrez) %>%
+  mutate(EntrezID = as.character(EntrezID))
+# Create function to convert ids, but only keep the IDs in the voom object
+convertHsEG2Dr <- function(ids, df = idConvert){
+  dplyr::filter(df, EntrezID %in% ids)$Geneid
+}
+
+# Conversion of zebrafish ensembl ID to zebrafish symbol, for plotting on network analyses
+idConvertSymbol <- read_csv2("../files/zf2human_withEntrezIDs.csv") %>%
+  dplyr::select(label = zfID, symbol = zfName) %>%
+  na.omit() %>%
+  unique()
+```
+
+```{r setting hallmark/kegg/wiki}
+# Import hallmark human gene genesets and tidy gene set names
+# .gmt files downloaded from:
+# http://software.broadinstitute.org/gsea/downloads.jsp 
+# http://data.wikipathways.org/20190610/ 
+hallmark <- gmtPathways("../files/h.all.v6.2.entrez.gmt") %>%
+  mclapply(convertHsEG2Dr, mc.cores = 4) %>%
+  set_names(str_remove_all(names(.), "HALLMARK_"))
+kegg <- gmtPathways("../files/c2.cp.kegg.v6.2.entrez.gmt") %>%
+  mclapply(convertHsEG2Dr, mc.cores = 4) %>%
+  set_names(str_remove_all(names(.), "KEGG_"))
+wiki <- gmtPathways("../files/wikipathways-20190610-gmt-Homo_sapiens.gmt") %>%
+  mclapply(convertHsEG2Dr, mc.cores = 4) %>%
+  set_names(str_remove_all(names(.), "%.+"))
+```
+
+###GO seq analysis
+
+```{r}
+pwf <- topTable %>% 
+  dplyr::select(ensembl_gene_id, logFC, DE, aveLength, aveGc) %>%
+  mutate(nGC = aveLength*aveGc) %>% 
+  distinct(ensembl_gene_id, .keep_all = TRUE) %>% 
+  with(
+    nullp(
+      DEgenes = structure(
+        as.integer(DE), names = ensembl_gene_id
+      ), 
+      genome = "danRer10", 
+      id = "ensGene", 
+      # bias.data = log(nGC),
+      bias.data = aveLength,
+      plot.fit = FALSE
+    )
+  )
+```
+
+```{r, echo=FALSE, fig.cap="Probability weight function for a gene being considered as DE based on the number of GC bases per gene."}
+grid::grid.newpage()
+plotPWF(pwf)
+```
+
+
+
+### Hallmark Gene Sets
+
+Mappings from gene to pathway are also required, instead of the previous pathway to gene.
+
+```{r}
+hallmarkByGene <- names(hallmark) %>%
+  lapply(function(x){
+    tibble(pathway = x, ensembl_gene_id = hallmark[[x]])
+  }) %>% 
+  bind_rows() %>% 
+  dplyr::filter(!is.na(ensembl_gene_id)) %>%
+  split(f = .$ensembl_gene_id) %>% 
+  lapply(extract2, "pathway") 
+```
+
+
+```{r}
+hallmarkGoseq <- pwf %>%
+    goseq(gene2cat = hallmarkByGene) %>%
+    as_tibble %>%
+    mutate(FDR = p.adjust(over_represented_pvalue, method = "fdr"))
+```
+
+```{r, echo=FALSE}
+hallmarkGoseq %>%
+    dplyr::slice(1:5) %>%
+    dplyr::select(
+        Pathway = category, 
+        starts_with("num"), 
+        PValue = over_represented_pvalue, 
+        FDR
+    ) %>%
+    pander(
+        caption = "Most highly ranked hallmark pathways.",
+        justify = "lrrrr"
+    )
+```
+
+### KEGG Pathways
+
+The same approach was then applied to the set of KEGG gene sets
+```{r wiki}
+keggByGene <- names(kegg) %>%
+    lapply(function(x){
+        tibble(pathway = x, ensembl_gene_id = kegg[[x]])
+    }) %>% 
+    bind_rows() %>% 
+    split(f = .$ensembl_gene_id) %>% 
+    lapply(extract2, "pathway") 
+```
+
+```{r}
+keggGoseq <- pwf %>%
+  goseq(gene2cat = keggByGene) %>%
+  as_tibble %>%
+  mutate(FDR = p.adjust(over_represented_pvalue, method = "fdr"))
+```
+
+```{r, echo=FALSE}
+keggGoseq %>%
+    dplyr::slice(1:5) %>%
+    dplyr::select(
+        Pathway = category, 
+        starts_with("num"), 
+        PValue = over_represented_pvalue, 
+        FDR
+    ) %>%
+    pander(
+        caption = "Most highly ranked KEGG pathways.",
+        justify = "lrrrr"
+    )
+```
+
+```{r}
+vapply(keggByGene, function(x){"DNA_REPLICATION" %in% x}, logical(1)) %>% which() %>% names() %>% intersect(dplyr::filter(topTable, DE)$ensembl_gene_id)
+# mcm5 mcm3 mcm4 mcm6 pole mcm2 mcm7
+
+vapply(keggByGene, function(x){"CELL_CYCLE" %in% x}, logical(1)) %>% which() %>% names() %>% intersect(dplyr::filter(topTable, DE)$ensembl_gene_id)
+
+vapply(hallmarkByGene, function(x){"G2M_CHECKPOINT" %in% x}, logical(1)) %>% which() %>% names() %>% intersect(dplyr::filter(topTable, DE)$ensembl_gene_id)
+```
+
+### wiki pathway
+
+```{r}
+wikiByGene <- names(wiki) %>%
+    lapply(function(x){
+        tibble(pathway = x, ensembl_gene_id = wiki[[x]])
+    }) %>% 
+    bind_rows() %>% 
+    split(f = .$ensembl_gene_id) %>% 
+    lapply(extract2, "pathway") 
+```
+
+```{r}
+wikiGoseq <- pwf %>%
+  goseq(gene2cat = wikiByGene) %>%
+  as_tibble %>%
+  mutate(FDR = p.adjust(over_represented_pvalue, method = "fdr"))
+```
+
+```{r, echo=FALSE}
+wikiGoseq %>%
+    dplyr::slice(1:5) %>%
+    dplyr::select(
+        Pathway = category, 
+        starts_with("num"), 
+        PValue = over_represented_pvalue, 
+        FDR
+    ) %>%
+    pander(
+        caption = "Most highly ranked wiki pathways.",
+        justify = "lrrrr"
+    )
+```
+
+### GO Analysis
+
+```{r}
+goByGene <- links(org.Dr.egGO2ALLEGS) %>%
+  as_tibble() %>%
+  left_join(
+    links(org.Dr.egENSEMBL2EG)
+  ) %>%
+  distinct(ensembl_id, go_id) %>%
+  dplyr::filter(ensembl_id %in% topTable$ensembl_gene_id) %>%
+  split(f = .$ensembl_id) %>%
+  lapply(extract2, "go_id")
+```
+
+```{r}
+goSummaries %<>%
+  dplyr::rename(category =id)
+goGoseq <- pwf %>%
+  goseq(gene2cat = goByGene) %>%
+  left_join(goSummaries) %>%
+  as_tibble %>%
+  mutate(FDR = p.adjust(over_represented_pvalue, method = "fdr"))
+```
+
+```{r enriched GO list}
+goGoseq %>%
+    dplyr::filter(FDR < 0.05, shortest_path > 4 | terminal_node == TRUE) %>%
+    dplyr::select(
+        Pathway = category, 
+        starts_with("num"), 
+        term,
+        shortest_path,
+        longest_path,
+        ontology,
+        PValue = over_represented_pvalue, 
+        FDR
+    ) %>%
+    pander(
+        caption = "Most highly ranked GO pathways.",
+        justify = "lrrrrrrrr"
+    )
+goGoseqTop <- goGoseq %>%
+    dplyr::filter(FDR < 0.05, shortest_path > 4 | terminal_node == TRUE) %>%
+    dplyr::select(
+        Pathway = category, 
+        starts_with("num"), 
+        term,
+        shortest_path,
+        longest_path,
+        ontology,
+        PValue = over_represented_pvalue, 
+        FDR)
+write.csv(goGoseqTop, "../R/GoTerms.csv")
+```
+
+```{r go terms}
+vapply(goByGene, function(x){"GO:0005198" %in% x}, logical(1)) %>% which() %>% names() %>% intersect(dplyr::filter(topTable, DE)$ensembl_gene_id)
+
+```
+
+```{r notch signaling}
+vapply(goByGene, function(x){"GO:0007219" %in% x}, logical(1)) %>% which() %>% names() %>% intersect(dplyr::filter(topTable, DE)$ensembl_gene_id)
+```
+
+```{r iron}
+vapply(goByGene, function(x){"GO:0006826" %in% x}, logical(1)) %>% which() %>% names() %>% intersect(dplyr::filter(topTable, DE)$ensembl_gene_id)
+```
+
+```{r GO plot}
+## Get significant GO terms
+sigGo <- goGoseq %>%
+    dplyr::filter(FDR < 0.05) %>%
+    .$category
+
+## Convert list of GO terms by gene to list of genes by GO term
+geneByGo <- names(goByGene) %>% 
+    lapply(function(x){tibble(gene_id = x, go_id = goByGene[[x]])}) %>% 
+    bind_rows() %>% 
+    split(f = .$go_id) %>% 
+    lapply(magrittr::extract2, "gene_id")
+
+## Get DE genes that belong to sigificant GO terms
+goGenes <- lapply(
+    sigGo, 
+    function(x){
+        geneByGo[[x]][geneByGo[[x]] %in% topTableDE$ensembl_gene_id]
+    }
+) 
+names(goGenes) <- sigGo
+
+## Make tibble of GO terms
+goTerms <- names(goGenes) %>%
+    tibble::enframe(name = NULL, value = "label")
+## Make tibble of genes
+genes <- unlist(goGenes) %>% 
+    unique() %>%
+    tibble::enframe(name = NULL, value = "label") %>%
+    mutate
+
+## Join to create node list
+nodes <- rbind(goTerms, genes) %>%
+    rowid_to_column("id")
+
+## Create edge list
+edges <- goGenes %>%
+    stack() %>%
+    as_tibble() %>%
+    dplyr::select(goTerm = ind, geneId = values) %>%
+    dplyr::arrange(goTerm) %>%
+    mutate(goTerm = as.character(goTerm)) %>%
+    left_join(nodes, by = c("goTerm" = "label")) %>%
+    dplyr::rename(from = id) %>%
+    left_join(nodes, by = c("geneId" = "label")) %>%
+    dplyr::rename(to = id) %>%
+    dplyr::select(from, to)
+
+## Setup colours
+colours <- length(sigGo) %>%
+    rainbow()
+
+## Create tidygraph object
+tidy <- tbl_graph(
+    nodes = nodes, 
+    edges = edges, 
+    directed = FALSE
+) %>%
+    activate(nodes) %>%
+    mutate(
+        goTerms = case_when(
+            id <= length(sigGo) ~ label
+        ),
+        term = Term(label),
+        gene_id = case_when(
+            !label %in% sigGo ~ label
+        ),
+        colour = case_when(
+            id <= length(sigGo) ~ colours[id]
+        ),
+        size = ifelse(id <= length(sigGo), 4, 1)
+    ) %>%
+    left_join(DrEns2Symbol) %>%
+    activate(edges) %>%
+    mutate(
+        colour = case_when(
+            from <= length(sigGo) ~ colours[from]
+        )
+    )
+
+## Set seed to allow same graph to be produced each time function is executed
+set.seed(1234)
+
+## Plot network graph
+tested2 <- c("mcm2", "mcm3", "mcm4", "mcm5", "mcm6", "mcm7", "tfa", "tfr1b", "fthl31", "fthl30")
+ggraph(tidy, layout = "fr") +
+    scale_fill_manual(
+        values = "white", 
+        na.value = "gray80"
+    ) +
+    scale_edge_color_manual(
+        values = "black", 
+        na.value = "gray80"
+    ) +
+    geom_edge_arc(
+        aes(color = "black"), 
+        alpha = 0.5, 
+        show.legend = FALSE, 
+        curvature = 0.5
+    ) +
+    geom_node_point(
+        aes(fill = "black", size = size),
+        shape = 21,
+        stroke = 0.5, 
+        show.legend = FALSE
+    ) +
+    geom_node_label(
+        aes(label = goTerms),
+        repel = TRUE,
+        size = 3,
+        alpha = 0.7,
+        label.padding = 0.1
+    ) +
+    theme_graph() +
+    theme(legend.position = "none")
+```
+
+###Gene Set Enrichment analysis (GSEA)
+
+```{r setting ranks}
+ranks <- topTable %>%
+  mutate(stat = -sign(logFC) * log10(PValue)) %>%
+  dplyr::arrange(stat) %>%
+  with(structure(stat, names = ensembl_gene_id))
+```
+
+### Hallmark pathways
+
+```{r hallmark}
+set.seed(22)
+# Run GSEA for hallmark
+fgseaHallmark <- fgsea(hallmark, ranks, nperm=1e5) %>%
+  as_tibble() %>%
+  dplyr::rename(FDR = padj) %>%
+  mutate(padj = p.adjust(pval, "bonferroni")) %>%
+  dplyr::arrange(pval)
+
+fgseaHallmarkTop <- fgseaHallmark %>%
+  dplyr::filter(padj < 0.05) 
+
+fgseaHallmarkTop %>%
+  dplyr::select(-leadingEdge, -nMoreExtreme) %>%
+  pander(
+    style = "rmarkdown", 
+    split.tables = Inf, 
+    justify = "lrrrrrr", 
+    caption = paste(
+      "The", nrow(.), "most significantly enriched Hallmark pathways.",
+      "This corresponds to an FDR of", percent(max(.$FDR)))
+  )
+```
+
+
+```{r fig.align = "center"}
+# Make a table plot of significant Hallmark pathways
+if (interactive()) grid::grid.newpage()
+plotGseaTable(
+  hallmark[dplyr::filter(fgseaHallmark, padj < 0.05)$pathway], ranks, fgseaHallmark, gseaParam = 0.5
+)
+```
+
+### KEGG pathways
+
+```{r KEGG}
+# Set seed to enable reproducibility
+set.seed(22)
+# Run GSEA for KEGG
+fgseaKEGG <- fgsea(kegg, ranks, nperm=1e5) %>%
+  as_tibble() %>%
+  dplyr::rename(FDR = padj) %>%
+  mutate(padj = p.adjust(pval, "bonferroni")) %>%
+  dplyr::arrange(pval)
+# Create an object of pathways with adjusted p-value < 0.05 for construction of network diagrams. This should be done differently next time, but too much work has been done to change it now.
+fgseaKEGGTop <- fgseaKEGG %>%
+  dplyr::filter(padj < 0.05)
+fgseaKEGGTop %>%
+  dplyr::select(-leadingEdge, -nMoreExtreme) %>%
+  pander(
+    style = "rmarkdown", 
+    split.tables = Inf, 
+    justify = "lrrrrrr", 
+    caption = paste(
+      "The", nrow(.), "most significantly enriched KEGG pathways.",
+      "This corresponds to an FDR of", percent(max(.$FDR)))
+  )
+```
+
+```{r visualise a pathway}
+pv.out <- pathview(gene.data = ranks, 
+         pathway.id = "00010", 
+         species = "Danio rerio", 
+         gene.idtype = "ENSEMBL",
+         limit = list(gene=5, cpd=1))
+```
+
+```{r fig.align = "center"}
+# Make a table plot of significant KEGG pathways
+if (interactive()) grid::grid.newpage()
+plotGseaTable(
+  kegg[fgseaKEGGTop$pathway], ranks, fgseaKEGG, gseaParam = 0.5
+)
+```
+
+### WikiPathways
+
+```{r WikiPathways}
+# Set seed to enable reproducibility
+set.seed(22)
+# Run GSEA for WikiPathways
+fgseaWiki <- fgsea(wiki, ranks, nperm=1e5) %>%
+  as_tibble() %>%
+  dplyr::rename(FDR = padj) %>%
+  mutate(padj = p.adjust(pval, "bonferroni")) %>%
+  dplyr::arrange(pval)
+# Create an object of pathways with adjusted p-value < 0.05 for construction of network diagrams. This should be done differently next time, but too much work has been done to change it now.
+fgseaWikiTop <- fgseaWiki %>%
+  dplyr::filter(padj < 0.05)
+fgseaWikiTop %>%
+  dplyr::select(-leadingEdge, -nMoreExtreme) %>%
+  pander(
+    style = "rmarkdown", 
+    split.tables = Inf, 
+    justify = "lrrrrrr", 
+    caption = paste(
+      "The", nrow(.), "most significantly enriched Wiki pathways.",
+      "This corresponds to an FDR of", percent(max(.$FDR)))
+  )
+```
+
+```{r fig.align = "center"}
+# Make a table plot of significant WikiPathways pathways
+if (interactive()) grid::grid.newpage()
+plotGseaTable(
+  wiki[fgseaWikiTop$pathway], ranks, fgseaWiki, gseaParam = 0.5
+)
+```
+
+```{r plotfthl31, echo=FALSE, fig.cap = "Expression of *fthl31* across all samples."}
+dgeList %>%
+	cpm(log = TRUE) %>%
+	.["ENSDARG00000094210",] %>%
+	as.matrix() %>%
+	set_colnames("logCPM") %>%
+	cbind(dgeList$samples[rownames(.),]) %>%
+	ggplot(aes(sample, logCPM, fill = Genotype)) +
+	geom_bar(stat = "identity") +
+  facet_wrap(~Genotype, scales = "free_x") +
+  guides(fill = FALSE) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+```{r plottfa, echo=FALSE, fig.cap = "Expression of *tfa* across all samples."}
+dgeList %>%
+	cpm(log = TRUE) %>%
+	.["ENSDARG00000016771",] %>%
+	as.matrix() %>%
+	set_colnames("logCPM") %>%
+	cbind(dgeList$samples[rownames(.),]) %>%
+	ggplot(aes(sample, logCPM, fill = Genotype)) +
+	geom_bar(stat = "identity") +
+  facet_wrap(~Genotype, scales = "free_x") +
+  guides(fill = FALSE) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+```{r plottfr1b, echo=FALSE, fig.cap = "Expression of *tfr1b* across all samples."}
+dgeList %>%
+	cpm(log = TRUE) %>%
+	.["ENSDARG00000077372",] %>%
+	as.matrix() %>%
+	set_colnames("logCPM") %>%
+	cbind(dgeList$samples[rownames(.),]) %>%
+	ggplot(aes(sample, logCPM, fill = Genotype)) +
+	geom_bar(stat = "identity") +
+  facet_wrap(~Genotype, scales = "free_x") +
+  guides(fill = FALSE) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+```
+
+# IRE enrichment test
+
+```{r}
+ireGR <- list.files(pattern = "gff.gz") %>%
+    sapply(rtracklayer::import.gff, simplify = FALSE) %>%
+    lapply(function(x){
+        tibble(
+            tx_id = seqnames(x) %>% as.character(),
+            quality = x$quality
+        ) %>%
+            left_join(
+                mcols(transGR) %>% as.data.frame()
+            ) %>%
+            mutate(
+                quality = factor(
+                    quality, levels = c("Low", "Medium", "High")
+                )
+            ) %>%
+            arrange(gene_id, desc(quality)) %>%
+            distinct(gene_id, .keep_all = TRUE) %>%
+            dplyr::select(tx_id, gene_id, quality)
+    }) 
+names(ireGR) <- str_extract(names(ireGR), "utr[35]")
+```
+
+```{r}
+ireHigh <- lapply(ireGR, subset, quality == "High")
+```
+
+
+
+```{r}
+ireByGene <- c(
+    names(ireGR) %>%
+        lapply(function(x){
+            mutate(ireGR[[x]], Type = paste0(x, "_All"))
+        }),
+    names(ireHigh) %>%
+        lapply(function(x){
+            mutate(ireHigh[[x]], Type = x)
+        })
+) %>%
+    bind_rows() %>%
+    split(f = .$gene_id) %>%
+    lapply(function(x){
+        unique(x$Type)
+    }) 
+
+ireGoseq <- pwf %>%
+   goseq(gene2cat = ireByGene) %>%
+   as_tibble %>%
+   mutate(FDR = p.adjust(over_represented_pvalue, method = "fdr"))
+```
+
+```{r, echo=FALSE}
+ireGoseq %>%
+    dplyr::slice(1:5) %>%
+    dplyr::select(
+        Pathway = category, 
+        starts_with("num"), 
+        PValue = over_represented_pvalue, 
+        FDR
+    ) %>%
+    pander(
+        caption = "GOseq analysis for IRE enrichment",
+        justify = "lrrrr"
+    )
+```
+
+```{r IRE}
+ireGSEA <- c(
+    names(ireGR) %>%
+        lapply(function(x){
+            mutate(ireGR[[x]], Type = paste0(x, "_All"))
+        }),
+    names(ireHigh) %>%
+        lapply(function(x){
+            mutate(ireHigh[[x]], Type = x)
+        })
+) %>%
+    bind_rows() %>%
+    split(f = .$Type) %>%
+    lapply(function(x){
+        unique(x$gene_id)
+    }) 
+
+fgseaIRE <- fgsea(ireGSEA, ranks, nperm=1e5) %>%
+  as_tibble() %>%
+  dplyr::rename(FDR = padj) %>%
+  mutate(padj = p.adjust(pval, "bonferroni")) %>%
+  dplyr::arrange(pval)
+
+fgseaIRE %>%
+  dplyr::select(-leadingEdge, -nMoreExtreme) %>%
+  pander(
+    style = "rmarkdown", 
+    split.tables = Inf, 
+    justify = "lrrrrrr", 
+    caption = paste(
+      "The", nrow(.), "GSEA analysis of IRE enrichment", percent(max(.$FDR)))
+  )
+```
+
+
+# Session Info
+
+```{r}
+pander(sessionInfo())
+```
