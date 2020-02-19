@@ -944,6 +944,7 @@ ggraph(tidy, layout = "fr") +
     theme(legend.position = "none")
 ```
 
+
 ###Gene Set Enrichment analysis (GSEA)
 
 ```{r setting ranks}
