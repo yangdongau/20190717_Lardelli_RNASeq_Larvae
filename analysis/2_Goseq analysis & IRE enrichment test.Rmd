@@ -1,0 +1,535 @@
+---
+title: "2_Goseq analysis & IRE enrichment test"
+author: "Yang & Steve"
+date: "24/02/2020"
+output: 
+  html_document: 
+    toc: yes
+    toc_float: yes
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+---
+### Setup
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+```{r packages}
+library(limma)
+library(biomaRt)
+library(edgeR)
+library(AnnotationHub)
+library(tidyverse)
+library(magrittr)
+library(pander)
+library(RColorBrewer)
+library(ggrepel)
+library(swfdr)
+library(qvalue)
+library(scales)
+library(here)
+library(variancePartition)
+library(org.Hs.eg.db)
+library(plyr)
+library(ggraph)
+library(tidygraph)
+library(fgsea)
+library(pheatmap)
+library(RUVSeq)
+library(GenomicRanges)
+library(cqn)
+library(kableExtra)
+library(goseq)
+library(org.Dr.eg.db)
+library(pathview)
+library(msigdbr)
+theme_set(theme_bw())
+panderOptions("big.mark", ",")
+panderOptions("table.split.table", Inf)
+panderOptions("table.style", "rmarkdown")
+if (interactive()) setwd(here::here("R"))
+```
+
+The first step here is to map the Ensembl zebrafish gene IDs to Human Entrez gene IDs.
+
+#
+```{r}
+ah <- AnnotationHub() %>%
+  subset(species == "Danio rerio") %>%
+  subset(dataprovider == "Ensembl") %>%
+  subset(rdataclass == "EnsDb")
+ensDb <- ah[["AH69169"]]
+genesGR <- genes(ensDb)
+transGR <- transcripts(ensDb)
+DrEns2Symbol <- genesGR %>%
+    mcols() %>%
+    as_tibble() %>%
+    dplyr::select(gene_id, gene_name)
+```
+
+# Data load
+
+```{r loaddgeList}
+dgeList <- read_rds("../data/dgeList.rds")
+entrezGenes <- dgeList$genes %>%
+  dplyr::filter(!is.na(entrez_gene)) %>%
+  unnest(entrez_gene) %>%
+  dplyr::rename(entrez_gene = entrez_gene)
+topTable <- file.path("../output", "topTable.csv") %>% 
+  read_csv()
+topTableDE <- file.path("../output", "DEgenes.csv") %>% 
+  read_csv()
+```
+
+```{r convert ID}
+# Load id conversion file
+idConvert <- read_csv2("../files/zf2human_withEntrezIDs.csv") %>%
+  dplyr::select(Geneid = zfID, EntrezID = Entrez) %>%
+  mutate(EntrezID = as.character(EntrezID))
+# Create function to convert ids, but only keep the IDs in the voom object
+convertHsEG2Dr <- function(ids, df = idConvert){
+  dplyr::filter(df, EntrezID %in% ids)$Geneid
+}
+
+# Conversion of zebrafish ensembl ID to zebrafish symbol, for plotting on network analyses
+idConvertSymbol <- read_csv2("../files/zf2human_withEntrezIDs.csv") %>%
+  dplyr::select(label = zfID, symbol = zfName) %>%
+  na.omit() %>%
+  unique()
+```
+
+# Databases used for testing
+
+## Hallmark Gene Sets
+
+```{r hallmark}
+hallmark <- msigdbr("Danio rerio", category = "H")  %>% 
+  left_join(entrezGenes) %>%
+  dplyr::filter(!is.na(ensembl_gene_id)) %>%
+  distinct(gs_name, ensembl_gene_id, .keep_all = TRUE)
+hallmarkByGene <- hallmark %>%
+  split(f = .$ensembl_gene_id) %>%
+  lapply(extract2, "gs_name")
+hallmarkByID <- hallmark %>%
+  split(f = .$gs_name) %>%
+  lapply(extract2, "ensembl_gene_id")
+```
+
+## KEGG gene sets
+```{r kegg}
+kegg <- msigdbr("Danio rerio", category = "C2", subcategory = "CP:KEGG")  %>% 
+  left_join(entrezGenes) %>%
+  dplyr::filter(!is.na(ensembl_gene_id)) %>%
+  distinct(gs_name, ensembl_gene_id, .keep_all = TRUE)
+keggByGene <- kegg  %>%
+  split(f = .$ensembl_gene_id) %>%
+  lapply(extract2, "gs_name")
+keggByID <- kegg  %>%
+  split(f = .$gs_name) %>%
+  lapply(extract2, "ensembl_gene_id")
+```
+
+## Wiki gene sets
+```{r wiki}
+wiki <- gmtPathways("../files/wikipathways-20190610-gmt-Homo_sapiens.gmt") %>%
+  mclapply(convertHsEG2Dr, mc.cores = 4) %>%
+  set_names(str_remove_all(names(.), "%.+"))
+```
+
+```{r}
+pwf <- topTable %>% 
+  dplyr::select(ensembl_gene_id, logFC, DE, aveLength, aveGc) %>%
+  mutate(nGC = aveLength*aveGc) %>% 
+  distinct(ensembl_gene_id, .keep_all = TRUE) %>% 
+  with(
+    nullp(
+      DEgenes = structure(
+        as.integer(DE), names = ensembl_gene_id
+      ), 
+      genome = "danRer10", 
+      id = "ensGene", 
+      # bias.data = log(nGC),
+      bias.data = aveLength,
+      plot.fit = FALSE
+    )
+  )
+```
+
+```{r, echo=FALSE, fig.cap="Probability weight function for a gene being considered as DE based on the number of GC bases per gene."}
+grid::grid.newpage()
+plotPWF(pwf)
+```
+
+
+## Goseq pathway analysis
+
+### Hallmark Gene Sets
+
+Mappings from gene to pathway are also required, instead of the previous pathway to gene.
+
+```{r}
+hallmarkGoseq <- pwf %>%
+    goseq(gene2cat = hallmarkByGene) %>%
+    as_tibble %>%
+    mutate(FDR = p.adjust(over_represented_pvalue, method = "fdr"))
+```
+
+```{r, echo=FALSE}
+hallmarkGoseq %>%
+    dplyr::slice(1:5) %>%
+    dplyr::select(
+        Pathway = category, 
+        starts_with("num"), 
+        PValue = over_represented_pvalue, 
+        FDR
+    ) %>%
+    pander(
+        caption = "Most highly ranked hallmark pathways.",
+        justify = "lrrrr"
+    )
+```
+
+### KEGG Pathways
+
+```{r}
+keggGoseq <- pwf %>%
+  goseq(gene2cat = keggByGene) %>%
+  as_tibble %>%
+  mutate(FDR = p.adjust(over_represented_pvalue, method = "fdr"))
+```
+
+```{r, echo=FALSE}
+keggGoseq %>%
+    dplyr::slice(1:5) %>%
+    dplyr::select(
+        Pathway = category, 
+        starts_with("num"), 
+        PValue = over_represented_pvalue, 
+        FDR
+    ) %>%
+    pander(
+        caption = "Most highly ranked KEGG pathways.",
+        justify = "lrrrr"
+    )
+```
+
+### wiki pathway
+
+```{r}
+wikiByGene <- names(wiki) %>%
+    lapply(function(x){
+        tibble(pathway = x, ensembl_gene_id = wiki[[x]])
+    }) %>% 
+    bind_rows() %>% 
+    split(f = .$ensembl_gene_id) %>% 
+    lapply(extract2, "pathway") 
+```
+
+```{r}
+wikiGoseq <- pwf %>%
+  goseq(gene2cat = wikiByGene) %>%
+  as_tibble %>%
+  mutate(FDR = p.adjust(over_represented_pvalue, method = "fdr"))
+```
+
+```{r, echo=FALSE}
+wikiGoseq %>%
+    dplyr::slice(1:5) %>%
+    dplyr::select(
+        Pathway = category, 
+        starts_with("num"), 
+        PValue = over_represented_pvalue, 
+        FDR
+    ) %>%
+    pander(
+        caption = "Most highly ranked wiki pathways.",
+        justify = "lrrrr"
+    )
+```
+
+## Goseq GO analysis
+
+```{r}
+goByGene <- links(org.Dr.egGO2ALLEGS) %>%
+  as_tibble() %>%
+  left_join(
+    links(org.Dr.egENSEMBL2EG)
+  ) %>%
+  distinct(ensembl_id, go_id) %>%
+  dplyr::filter(ensembl_id %in% topTable$ensembl_gene_id) %>%
+  split(f = .$ensembl_id) %>%
+  lapply(extract2, "go_id")
+```
+
+```{r}
+goGoseq <- pwf %>%
+  goseq(gene2cat = goByGene) %>%
+  as_tibble %>%
+  mutate(FDR = p.adjust(over_represented_pvalue, method = "fdr"))
+```
+
+```{r enriched GO list}
+goGoseq %>%
+    dplyr::filter(FDR < 0.05) %>%
+    dplyr::select(
+        Pathway = category, 
+        starts_with("num"), 
+        term,
+        ontology,
+        PValue = over_represented_pvalue, 
+        FDR
+    ) %>%
+    pander(
+        caption = "Most highly ranked GO pathways.",
+        justify = "lrrrrrr"
+    )
+goGoseqTop <- goGoseq %>%
+    dplyr::filter(FDR < 0.05) %>%
+    dplyr::select(
+        Pathway = category, 
+        starts_with("num"), 
+        term,
+        ontology,
+        PValue = over_represented_pvalue, 
+        FDR)
+```
+
+## GO plot
+
+```{r GO plot}
+## Get significant GO terms
+sigGo <- goGoseq %>%
+    dplyr::filter(FDR < 0.05) %>%
+    .$category
+
+## Convert list of GO terms by gene to list of genes by GO term
+geneByGo <- names(goByGene) %>% 
+    lapply(function(x){tibble(gene_id = x, go_id = goByGene[[x]])}) %>% 
+    bind_rows() %>% 
+    split(f = .$go_id) %>% 
+    lapply(magrittr::extract2, "gene_id")
+
+## Get DE genes that belong to sigificant GO terms
+goGenes <- lapply(
+    sigGo, 
+    function(x){
+        geneByGo[[x]][geneByGo[[x]] %in% topTableDE$ensembl_gene_id]
+    }
+) 
+names(goGenes) <- sigGo
+
+## Make tibble of GO terms
+goTerms <- names(goGenes) %>%
+    tibble::enframe(name = NULL, value = "label")
+## Make tibble of genes
+genes <- unlist(goGenes) %>% 
+    unique() %>%
+    tibble::enframe(name = NULL, value = "label") %>%
+    mutate
+
+## Join to create node list
+nodes <- rbind(goTerms, genes) %>%
+    rowid_to_column("id")
+
+## Create edge list
+edges <- goGenes %>%
+    stack() %>%
+    as_tibble() %>%
+    dplyr::select(goTerm = ind, geneId = values) %>%
+    dplyr::arrange(goTerm) %>%
+    mutate(goTerm = as.character(goTerm)) %>%
+    left_join(nodes, by = c("goTerm" = "label")) %>%
+    dplyr::rename(from = id) %>%
+    left_join(nodes, by = c("geneId" = "label")) %>%
+    dplyr::rename(to = id) %>%
+    dplyr::select(from, to)
+
+## Setup colours
+colours <- length(sigGo) %>%
+    rainbow()
+
+## Create tidygraph object
+tidy <- tbl_graph(
+    nodes = nodes, 
+    edges = edges, 
+    directed = FALSE
+) %>%
+    activate(nodes) %>%
+    mutate(
+        goTerms = case_when(
+            id <= length(sigGo) ~ label
+        ),
+        term = Term(label),
+        gene_id = case_when(
+            !label %in% sigGo ~ label
+        ),
+        colour = case_when(
+            id <= length(sigGo) ~ colours[id]
+        ),
+        size = ifelse(id <= length(sigGo), 4, 1)
+    ) %>%
+    left_join(DrEns2Symbol) %>%
+    activate(edges) %>%
+    mutate(
+        colour = case_when(
+            from <= length(sigGo) ~ colours[from]
+        )
+    )
+
+## Set seed to allow same graph to be produced each time function is executed
+set.seed(1234)
+
+## Plot network graph
+ggraph(tidy, layout = "fr") +
+    scale_fill_manual(
+        values = "white", 
+        na.value = "gray80"
+    ) +
+    scale_edge_color_manual(
+        values = "black", 
+        na.value = "gray80"
+    ) +
+    geom_edge_arc(
+        aes(color = "black"), 
+        alpha = 0.5, 
+        show.legend = FALSE, 
+        curvature = 0.5
+    ) +
+    geom_node_point(
+        aes(fill = "black", size = size),
+        shape = 21,
+        stroke = 0.5, 
+        show.legend = FALSE
+    ) +
+    geom_node_label(
+        aes(label = gene_name),
+        repel = TRUE,
+        size = 3,
+        alpha = 0.7,
+        label.padding = 0.1
+    ) +
+    theme_graph() +
+    theme(legend.position = "none")
+```
+
+# IRE enrichment analysis
+
+```{r}
+ireGR <- list.files(pattern = "gff.gz") %>%
+    sapply(rtracklayer::import.gff, simplify = FALSE) %>%
+    lapply(function(x){
+        tibble(
+            tx_id = seqnames(x) %>% as.character(),
+            quality = x$quality
+        ) %>%
+            left_join(
+                mcols(transGR) %>% as.data.frame()
+            ) %>%
+            mutate(
+                quality = factor(
+                    quality, levels = c("Low", "Medium", "High")
+                )
+            ) %>%
+            arrange(gene_id, desc(quality)) %>%
+            distinct(gene_id, .keep_all = TRUE) %>%
+            dplyr::select(tx_id, gene_id, quality)
+    }) 
+names(ireGR) <- str_extract(names(ireGR), "utr[35]")
+
+ireHigh <- lapply(ireGR, subset, quality == "High")
+```
+
+
+```{r}
+ireByGene <- c(
+    names(ireGR) %>%
+        lapply(function(x){
+            mutate(ireGR[[x]], Type = paste0(x, "_All"))
+        }),
+    names(ireHigh) %>%
+        lapply(function(x){
+            mutate(ireHigh[[x]], Type = x)
+        })
+) %>%
+    bind_rows() %>%
+    split(f = .$gene_id) %>%
+    lapply(function(x){
+        unique(x$Type)
+    }) 
+
+ireGoseq <- pwf %>%
+   goseq(gene2cat = ireByGene) %>%
+   as_tibble %>%
+   mutate(FDR = p.adjust(over_represented_pvalue, method = "fdr"))
+```
+
+```{r, echo=FALSE}
+ireGoseq %>%
+    dplyr::slice(1:5) %>%
+    dplyr::select(
+        Pathway = category, 
+        starts_with("num"), 
+        PValue = over_represented_pvalue, 
+        FDR
+    ) %>%
+    pander(
+        caption = "GOseq analysis for IRE enrichment",
+        justify = "lrrrr"
+    )
+```
+
+## IRE GSEA analysis 
+
+### Gene ranks
+
+```{r rank genes}
+ranks <- topTable %>%
+  mutate(stat = -sign(logFC) * log10(PValue)) %>%
+  dplyr::arrange(stat) %>%
+  with(structure(stat, names = ensembl_gene_id))
+```
+
+```{r IRE}
+ireGSEA <- c(
+    names(ireGR) %>%
+        lapply(function(x){
+            mutate(ireGR[[x]], Type = paste0(x, "_All"))
+        }),
+    names(ireHigh) %>%
+        lapply(function(x){
+            mutate(ireHigh[[x]], Type = x)
+        })
+) %>%
+    bind_rows() %>%
+    split(f = .$Type) %>%
+    lapply(function(x){
+        unique(x$gene_id)
+    }) 
+
+fgseaIRE <- fgsea(ireGSEA, ranks, nperm=1e5) %>%
+  as_tibble() %>%
+  dplyr::rename(FDR = padj) %>%
+  mutate(padj = p.adjust(pval, "bonferroni")) %>%
+  dplyr::arrange(pval)
+
+fgseaIRE %>%
+  dplyr::select(-leadingEdge, -nMoreExtreme) %>%
+  pander(
+    style = "rmarkdown", 
+    split.tables = Inf, 
+    justify = "lrrrrrr", 
+    caption = paste(
+      "The", nrow(.), "GSEA analysis of IRE enrichment", percent(max(.$FDR)))
+  )
+```
+
+
+# Session Info
+
+```{r}
+pander(sessionInfo())
+```

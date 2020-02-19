@@ -1,0 +1,232 @@
+---
+title: "3_GSEA"
+author: "Yang & Steve"
+date: "24/02/2020"
+output: 
+  html_document: 
+    toc: yes
+    toc_float: yes
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+### Setup
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+```{r packages}
+library(limma)
+library(biomaRt)
+library(edgeR)
+library(AnnotationHub)
+library(tidyverse)
+library(magrittr)
+library(pander)
+library(RColorBrewer)
+library(ggrepel)
+library(swfdr)
+library(qvalue)
+library(scales)
+library(here)
+library(variancePartition)
+library(org.Hs.eg.db)
+library(plyr)
+library(ggraph)
+library(tidygraph)
+library(fgsea)
+library(pheatmap)
+library(GenomicRanges)
+library(kableExtra)
+library(org.Dr.eg.db)
+library(pathview)
+library(msigdbr)
+theme_set(theme_bw())
+panderOptions("big.mark", ",")
+panderOptions("table.split.table", Inf)
+panderOptions("table.style", "rmarkdown")
+if (interactive()) setwd(here::here("analysis"))
+```
+
+# Data load
+
+```{r loaddgeList}
+dgeList <- read_rds("../data/dgeList.rds")
+entrezGenes <- dgeList$genes %>%
+  dplyr::filter(!is.na(entrez_gene)) %>%
+  unnest(entrez_gene) %>%
+  dplyr::rename(entrez_gene = entrez_gene)
+topTable <- file.path("../output", "topTable.csv") %>% 
+  read_csv()
+```
+
+# Gene ranks
+```{r rank genes}
+ranks <- topTable %>%
+  mutate(stat = -sign(logFC) * log10(PValue)) %>%
+  dplyr::arrange(stat) %>%
+  with(structure(stat, names = ensembl_gene_id))
+```
+
+
+# Databases used for testing
+
+## Hallmark Gene Sets
+
+```{r hallmark}
+hallmark <- msigdbr("Danio rerio", category = "H")  %>% 
+  left_join(entrezGenes) %>%
+  dplyr::filter(!is.na(ensembl_gene_id)) %>%
+  distinct(gs_name, ensembl_gene_id, .keep_all = TRUE)
+hallmarkByGene <- hallmark %>%
+  split(f = .$ensembl_gene_id) %>%
+  lapply(extract2, "gs_name")
+hallmarkByID <- hallmark %>%
+  split(f = .$gs_name) %>%
+  lapply(extract2, "ensembl_gene_id")
+```
+
+## KEGG gene sets
+```{r kegg}
+kegg <- msigdbr("Danio rerio", category = "C2", subcategory = "CP:KEGG")  %>% 
+  left_join(entrezGenes) %>%
+  dplyr::filter(!is.na(ensembl_gene_id)) %>%
+  distinct(gs_name, ensembl_gene_id, .keep_all = TRUE)
+keggByGene <- kegg  %>%
+  split(f = .$ensembl_gene_id) %>%
+  lapply(extract2, "gs_name")
+keggByID <- kegg  %>%
+  split(f = .$gs_name) %>%
+  lapply(extract2, "ensembl_gene_id")
+```
+
+## Wiki gene sets
+```{r wiki}
+wiki <- gmtPathways("../files/wikipathways-20190610-gmt-Homo_sapiens.gmt") %>%
+  mclapply(convertHsEG2Dr, mc.cores = 4) %>%
+  set_names(str_remove_all(names(.), "%.+"))
+```
+
+# Gene Set Enrichment analysis (GSEA)
+
+## Hallmark pathways
+
+```{r hallmark}
+set.seed(22)
+# Run GSEA for hallmark
+fgseaHallmark <- fgsea(hallmarkByID, ranks, nperm=1e5) %>%
+  as_tibble() %>%
+  dplyr::rename(FDR = padj) %>%
+  mutate(padj = p.adjust(pval, "bonferroni")) %>%
+  dplyr::arrange(pval)
+
+fgseaHallmarkTop <- fgseaHallmark %>%
+  dplyr::filter(padj < 0.05) 
+
+fgseaHallmarkTop %>%
+  dplyr::select(-leadingEdge, -nMoreExtreme) %>%
+  pander(
+    style = "rmarkdown", 
+    split.tables = Inf, 
+    justify = "lrrrrrr", 
+    caption = paste(
+      "The", nrow(.), "most significantly enriched Hallmark pathways.",
+      "This corresponds to an FDR of", percent(max(.$FDR)))
+  )
+```
+
+
+```{r fig.align = "center"}
+# Make a table plot of significant Hallmark pathways
+if (interactive()) grid::grid.newpage()
+plotGseaTable(
+  hallmark[dplyr::filter(fgseaHallmark, padj < 0.05)$pathway], ranks, fgseaHallmark, gseaParam = 0.5
+)
+```
+
+## KEGG pathways
+
+```{r KEGG}
+# Set seed to enable reproducibility
+set.seed(22)
+# Run GSEA for KEGG
+fgseaKEGG <- fgsea(keggByID, ranks, nperm=1e5) %>%
+  as_tibble() %>%
+  dplyr::rename(FDR = padj) %>%
+  mutate(padj = p.adjust(pval, "bonferroni")) %>%
+  dplyr::arrange(pval)
+# Create an object of pathways with adjusted p-value < 0.05 for construction of network diagrams. This should be done differently next time, but too much work has been done to change it now.
+fgseaKEGGTop <- fgseaKEGG %>%
+  dplyr::filter(padj < 0.05)
+fgseaKEGGTop %>%
+  dplyr::select(-leadingEdge, -nMoreExtreme) %>%
+  pander(
+    style = "rmarkdown", 
+    split.tables = Inf, 
+    justify = "lrrrrrr", 
+    caption = paste(
+      "The", nrow(.), "most significantly enriched KEGG pathways.",
+      "This corresponds to an FDR of", percent(max(.$FDR)))
+  )
+```
+
+```{r visualise a pathway}
+pv.out <- pathview(gene.data = ranks, 
+         pathway.id = "00010", 
+         species = "Danio rerio", 
+         gene.idtype = "ENSEMBL",
+         limit = list(gene=5, cpd=1))
+```
+
+```{r fig.align = "center"}
+# Make a table plot of significant KEGG pathways
+if (interactive()) grid::grid.newpage()
+plotGseaTable(
+  kegg[fgseaKEGGTop$pathway], ranks, fgseaKEGG, gseaParam = 0.5
+)
+```
+
+## WikiPathways
+
+```{r WikiPathways}
+# Set seed to enable reproducibility
+set.seed(22)
+# Run GSEA for WikiPathways
+fgseaWiki <- fgsea(wiki, ranks, nperm=1e5) %>%
+  as_tibble() %>%
+  dplyr::rename(FDR = padj) %>%
+  mutate(padj = p.adjust(pval, "bonferroni")) %>%
+  dplyr::arrange(pval)
+# Create an object of pathways with adjusted p-value < 0.05 for construction of network diagrams. This should be done differently next time, but too much work has been done to change it now.
+fgseaWikiTop <- fgseaWiki %>%
+  dplyr::filter(padj < 0.05)
+fgseaWikiTop %>%
+  dplyr::select(-leadingEdge, -nMoreExtreme) %>%
+  pander(
+    style = "rmarkdown", 
+    split.tables = Inf, 
+    justify = "lrrrrrr", 
+    caption = paste(
+      "The", nrow(.), "most significantly enriched Wiki pathways.",
+      "This corresponds to an FDR of", percent(max(.$FDR)))
+  )
+```
+
+```{r fig.align = "center"}
+# Make a table plot of significant WikiPathways pathways
+if (interactive()) grid::grid.newpage()
+plotGseaTable(
+  wiki[fgseaWikiTop$pathway], ranks, fgseaWiki, gseaParam = 0.5
+)
+```
+
+
+# Session Info
+
+```{r}
+pander(sessionInfo())
+```
+
+
+
