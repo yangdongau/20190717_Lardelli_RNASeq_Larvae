@@ -183,7 +183,7 @@ dgeList$samples$Genotype <- c("Q96K97del/+", "WT")[dgeList$samples$group] %>%
 Counts were then formed into a DGEList object.
 Library sizes after alignment, counting and gene filtering ranged between `r pander(comma(range(dgeList$samples$lib.size)))` reads.
 
-### Data Inspection
+# Data Inspection
 
 ```{r v}
 v <- dgeList %>%
@@ -219,7 +219,7 @@ pca$x %>%
 	theme(legend.title.align = 0.5)
 ```
 
-###DGE Analysis
+#DGE Analysis
 
 To run a mixed-effects (nested) analysis we must use a voom object.
 Here we are looking at the change due to genotype within each pair. 
@@ -292,7 +292,7 @@ deGenes %>%
 	theme(legend.position = "none")
 ```
 
-###RUV treatment (Remove Unwanted Variation)
+# RUV treatment (Remove Unwanted Variation)
 # Find some 'unchanged' genes. Grab the lowest ranked 5000
 ```{r}
 genes4Control <- deGenes %>%
@@ -451,7 +451,8 @@ dgeList %>%
 	theme(legend.position = "none")
 ```
 
-#GC content before RUV
+# GC content and gene length check
+## GC content before RUV
 ```{r}
 deGenes %>%
   dplyr::arrange(desc(P.Value)) %>%
@@ -479,7 +480,7 @@ deGenes %>%
   scale_color_manual(values = c("grey70", "red"))
 ```
 
-#Gene length before RUV
+## Gene length before RUV
 ```{r}
 deGenes %>%
   dplyr::arrange(desc(P.Value)) %>%
@@ -511,7 +512,7 @@ deGenes %>%
   scale_x_log10(labels = comma)
 ```
 
-#GC content after RUV
+## GC content after RUV
 ```{r}
 topTable %>%
   dplyr::arrange(desc(PValue)) %>%
@@ -540,7 +541,7 @@ topTable %>%
   scale_color_manual(values = c("grey70", "red"))
 ```
 
-#Gene length after RUV
+## Gene length after RUV
 ```{r}
 topTable %>%
   dplyr::arrange(desc(PValue)) %>%
@@ -573,14 +574,9 @@ topTable %>%
   scale_x_log10(labels = comma)
 ```
 
-###GO(Gene Ontology) analysis
+# Goseq analysis
 
 The first step here is to map the Ensembl zebrafish gene IDs to Human Entrez gene IDs.
-
-```{r goSummaries}
-goSummaries <- url("https://uofabioinformaticshub.github.io/summaries2GO/data/goSummaries.RDS") %>%
-  readRDS()
-```
 
 ```{r convert ID}
 # Load id conversion file
@@ -615,7 +611,6 @@ wiki <- gmtPathways("../files/wikipathways-20190610-gmt-Homo_sapiens.gmt") %>%
   set_names(str_remove_all(names(.), "%.+"))
 ```
 
-###GO seq analysis
 
 ```{r}
 pwf <- topTable %>% 
@@ -642,6 +637,7 @@ plotPWF(pwf)
 ```
 
 
+## Goseq pathway analysis
 
 ### Hallmark Gene Sets
 
@@ -716,15 +712,6 @@ keggGoseq %>%
     )
 ```
 
-```{r}
-vapply(keggByGene, function(x){"DNA_REPLICATION" %in% x}, logical(1)) %>% which() %>% names() %>% intersect(dplyr::filter(topTable, DE)$ensembl_gene_id)
-# mcm5 mcm3 mcm4 mcm6 pole mcm2 mcm7
-
-vapply(keggByGene, function(x){"CELL_CYCLE" %in% x}, logical(1)) %>% which() %>% names() %>% intersect(dplyr::filter(topTable, DE)$ensembl_gene_id)
-
-vapply(hallmarkByGene, function(x){"G2M_CHECKPOINT" %in% x}, logical(1)) %>% which() %>% names() %>% intersect(dplyr::filter(topTable, DE)$ensembl_gene_id)
-```
-
 ### wiki pathway
 
 ```{r}
@@ -759,7 +746,7 @@ wikiGoseq %>%
     )
 ```
 
-### GO Analysis
+## Goseq GO analysis
 
 ```{r}
 goByGene <- links(org.Dr.egGO2ALLEGS) %>%
@@ -774,24 +761,19 @@ goByGene <- links(org.Dr.egGO2ALLEGS) %>%
 ```
 
 ```{r}
-goSummaries %<>%
-  dplyr::rename(category =id)
 goGoseq <- pwf %>%
   goseq(gene2cat = goByGene) %>%
-  left_join(goSummaries) %>%
   as_tibble %>%
   mutate(FDR = p.adjust(over_represented_pvalue, method = "fdr"))
 ```
 
 ```{r enriched GO list}
 goGoseq %>%
-    dplyr::filter(FDR < 0.05, shortest_path > 4 | terminal_node == TRUE) %>%
+    dplyr::filter(FDR < 0.05) %>%
     dplyr::select(
         Pathway = category, 
         starts_with("num"), 
         term,
-        shortest_path,
-        longest_path,
         ontology,
         PValue = over_represented_pvalue, 
         FDR
@@ -801,31 +783,30 @@ goGoseq %>%
         justify = "lrrrrrrrr"
     )
 goGoseqTop <- goGoseq %>%
-    dplyr::filter(FDR < 0.05, shortest_path > 4 | terminal_node == TRUE) %>%
+    dplyr::filter(FDR < 0.05) %>%
     dplyr::select(
         Pathway = category, 
         starts_with("num"), 
         term,
-        shortest_path,
-        longest_path,
         ontology,
         PValue = over_represented_pvalue, 
         FDR)
 write.csv(goGoseqTop, "../R/GoTerms.csv")
 ```
 
-```{r go terms}
-vapply(goByGene, function(x){"GO:0005198" %in% x}, logical(1)) %>% which() %>% names() %>% intersect(dplyr::filter(topTable, DE)$ensembl_gene_id)
-
-```
+### notch signaling genes (Not significantly-changed GO)
 
 ```{r notch signaling}
 vapply(goByGene, function(x){"GO:0007219" %in% x}, logical(1)) %>% which() %>% names() %>% intersect(dplyr::filter(topTable, DE)$ensembl_gene_id)
 ```
 
+### iron ion transport genes (significantly-changed GO)
+
 ```{r iron}
 vapply(goByGene, function(x){"GO:0006826" %in% x}, logical(1)) %>% which() %>% names() %>% intersect(dplyr::filter(topTable, DE)$ensembl_gene_id)
 ```
+
+## GO plot
 
 ```{r GO plot}
 ## Get significant GO terms
@@ -954,7 +935,9 @@ ranks <- topTable %>%
   with(structure(stat, names = ensembl_gene_id))
 ```
 
-### Hallmark pathways
+# GSEA
+
+## Hallmark pathways
 
 ```{r hallmark}
 set.seed(22)
@@ -989,7 +972,7 @@ plotGseaTable(
 )
 ```
 
-### KEGG pathways
+## KEGG pathways
 
 ```{r KEGG}
 # Set seed to enable reproducibility
@@ -1031,7 +1014,7 @@ plotGseaTable(
 )
 ```
 
-### WikiPathways
+## WikiPathways
 
 ```{r WikiPathways}
 # Set seed to enable reproducibility
@@ -1064,6 +1047,8 @@ plotGseaTable(
   wiki[fgseaWikiTop$pathway], ranks, fgseaWiki, gseaParam = 0.5
 )
 ```
+
+# Gene expression Plot
 
 ```{r plotfthl31, echo=FALSE, fig.cap = "Expression of *fthl31* across all samples."}
 dgeList %>%
@@ -1130,12 +1115,9 @@ ireGR <- list.files(pattern = "gff.gz") %>%
             dplyr::select(tx_id, gene_id, quality)
     }) 
 names(ireGR) <- str_extract(names(ireGR), "utr[35]")
-```
 
-```{r}
 ireHigh <- lapply(ireGR, subset, quality == "High")
 ```
-
 
 
 ```{r}
