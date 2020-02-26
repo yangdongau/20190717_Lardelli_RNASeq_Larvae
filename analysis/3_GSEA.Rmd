@@ -27,7 +27,6 @@ library(pander)
 library(RColorBrewer)
 library(ggrepel)
 library(swfdr)
-library(qvalue)
 library(scales)
 library(here)
 library(variancePartition)
@@ -101,11 +100,26 @@ keggByID <- kegg  %>%
   lapply(extract2, "ensembl_gene_id")
 ```
 
+
 ## Wiki gene sets
 ```{r wiki}
-wiki <- gmtPathways("../files/wikipathways-20190610-gmt-Homo_sapiens.gmt") %>%
-  mclapply(convertHsEG2Dr, mc.cores = 4) %>%
-  set_names(str_remove_all(names(.), "%.+"))
+wikidownload <- downloadPathwayArchive(organism = "Danio rerio", format = "gmt") 
+wiki <- gmtPathways("../analysis/wikipathways-20200210-gmt-Danio_rerio.gmt") 
+wikilist <- names(wiki) %>%
+  lapply(function(x){
+    tibble(pathway = x, entrez_gene = wiki[[x]])
+  }) %>%
+  bind_rows() %>%
+  mutate(entrez_gene = as.numeric(entrez_gene)) %>%
+  left_join(entrezGenes) %>%
+  dplyr::filter(!is.na(ensembl_gene_id)) %>%
+  distinct(pathway, ensembl_gene_id, .keep_all = TRUE)
+wikiByGene <- wikilist  %>%
+  split(f = .$ensembl_gene_id) %>%
+  lapply(extract2, "pathway")
+wikiByID <- wikilist  %>%
+  split(f = .$pathway) %>%
+  lapply(extract2, "ensembl_gene_id")
 ```
 
 # Gene Set Enrichment analysis (GSEA)
@@ -193,7 +207,7 @@ plotGseaTable(
 # Set seed to enable reproducibility
 set.seed(22)
 # Run GSEA for WikiPathways
-fgseaWiki <- fgsea(wiki, ranks, nperm=1e5) %>%
+fgseaWiki <- fgsea(wikiByID, ranks, nperm=1e5) %>%
   as_tibble() %>%
   dplyr::rename(FDR = padj) %>%
   mutate(padj = p.adjust(pval, "bonferroni")) %>%

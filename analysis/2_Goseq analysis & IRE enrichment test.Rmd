@@ -29,7 +29,6 @@ library(pander)
 library(RColorBrewer)
 library(ggrepel)
 library(swfdr)
-library(qvalue)
 library(scales)
 library(here)
 library(variancePartition)
@@ -39,13 +38,10 @@ library(ggraph)
 library(tidygraph)
 library(fgsea)
 library(pheatmap)
-library(RUVSeq)
 library(GenomicRanges)
-library(cqn)
 library(kableExtra)
 library(goseq)
 library(org.Dr.eg.db)
-library(pathview)
 library(msigdbr)
 theme_set(theme_bw())
 panderOptions("big.mark", ",")
@@ -135,9 +131,23 @@ keggByID <- kegg  %>%
 
 ## Wiki gene sets
 ```{r wiki}
-wiki <- gmtPathways("../files/wikipathways-20190610-gmt-Homo_sapiens.gmt") %>%
-  mclapply(convertHsEG2Dr, mc.cores = 4) %>%
-  set_names(str_remove_all(names(.), "%.+"))
+wikidownload <- downloadPathwayArchive(organism = "Danio rerio", format = "gmt") 
+wiki <- gmtPathways("../analysis/wikipathways-20200210-gmt-Danio_rerio.gmt") 
+wikilist <- names(wiki) %>%
+  lapply(function(x){
+    tibble(pathway = x, entrez_gene = wiki[[x]])
+  }) %>%
+  bind_rows() %>%
+  mutate(entrez_gene = as.numeric(entrez_gene)) %>%
+  left_join(entrezGenes) %>%
+  dplyr::filter(!is.na(ensembl_gene_id)) %>%
+  distinct(pathway, ensembl_gene_id, .keep_all = TRUE)
+wikiByGene <- wikilist  %>%
+  split(f = .$ensembl_gene_id) %>%
+  lapply(extract2, "pathway")
+wikiByID <- wikilist  %>%
+  split(f = .$pathway) %>%
+  lapply(extract2, "ensembl_gene_id")
 ```
 
 ```{r}
@@ -218,16 +228,6 @@ keggGoseq %>%
 ```
 
 ### wiki pathway
-
-```{r}
-wikiByGene <- names(wiki) %>%
-    lapply(function(x){
-        tibble(pathway = x, ensembl_gene_id = wiki[[x]])
-    }) %>% 
-    bind_rows() %>% 
-    split(f = .$ensembl_gene_id) %>% 
-    lapply(extract2, "pathway") 
-```
 
 ```{r}
 wikiGoseq <- pwf %>%
