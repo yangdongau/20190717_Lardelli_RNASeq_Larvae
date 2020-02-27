@@ -8,4 +8,20 @@ editor_options:
   chunk_output_type: console
 ---
 
-Welcome to my research website.
+```{r setup}
+knitr::opts_chunk$set(
+  autodep = FALSE,
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+```{r loadPackages}
+library(tidyverse)
+```
+
+This website contains the analysis of RNAseq data from an experiment comparing zebrafish larvae from two genotypes.
+One genotype represented wild-type larvae, whilst the other genotype was a heterozygous mutation for the gene *psen1*, in which 6 nucleotides were deleted, to remove the two amino acids Q96 and K97.
+This mutation is generally referred to as *psen1^Q96K97^*.
+

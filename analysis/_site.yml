@@ -7,11 +7,10 @@ navbar:
     href: index.html
   - text: About
     href: about.html
-  - text: License
-    href: license.html
 output:
   workflowr::wflow_html:
     toc: yes
     toc_float: yes
+    code_folding: hide
     theme: cosmo
     highlight: textmate
