@@ -20,7 +20,6 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 
 ```{r packages}
 library(limma)
-library(biomaRt)
 library(edgeR)
 library(AnnotationHub)
 library(tidyverse)
@@ -31,13 +30,11 @@ library(ggrepel)
 library(swfdr)
 library(scales)
 library(here)
-library(variancePartition)
 library(org.Hs.eg.db)
 library(plyr)
 library(ggraph)
 library(tidygraph)
 library(fgsea)
-library(pheatmap)
 library(GenomicRanges)
 library(kableExtra)
 library(goseq)
@@ -48,13 +45,13 @@ theme_set(theme_bw())
 panderOptions("big.mark", ",")
 panderOptions("table.split.table", Inf)
 panderOptions("table.style", "rmarkdown")
-if (interactive()) setwd(here::here("R"))
+if (interactive()) setwd(here::here("analysis"))
 ```
 
 The first step here is to map the Ensembl zebrafish gene IDs to Human Entrez gene IDs.
 
 #
-```{r}
+```{r ensDb}
 ah <- AnnotationHub() %>%
   subset(species == "Danio rerio") %>%
   subset(dataprovider == "Ensembl") %>%
@@ -70,34 +67,18 @@ DrEns2Symbol <- genesGR %>%
 
 # Data load
 
-```{r loaddgeList}
-dgeList <- read_rds("../data/dgeList.rds")
+```{r load dgeList}
+dgeList <- read_rds(here::here("data","dgeList.rds"))
 entrezGenes <- dgeList$genes %>%
   dplyr::filter(!is.na(entrez_gene)) %>%
   unnest(entrez_gene) %>%
   dplyr::rename(entrez_gene = entrez_gene)
-topTable <- file.path("../output", "topTable.csv") %>% 
+topTable <- file.path(here::here("output", "topTable.csv")) %>% 
   read_csv()
-topTableDE <- file.path("../output", "DEgenes.csv") %>% 
+topTableDE <- file.path(here::here("output", "DEgenes.csv")) %>% 
   read_csv()
 ```
 
-```{r convert ID}
-# Load id conversion file
-idConvert <- read_csv2("../files/zf2human_withEntrezIDs.csv") %>%
-  dplyr::select(Geneid = zfID, EntrezID = Entrez) %>%
-  mutate(EntrezID = as.character(EntrezID))
-# Create function to convert ids, but only keep the IDs in the voom object
-convertHsEG2Dr <- function(ids, df = idConvert){
-  dplyr::filter(df, EntrezID %in% ids)$Geneid
-}
-
-# Conversion of zebrafish ensembl ID to zebrafish symbol, for plotting on network analyses
-idConvertSymbol <- read_csv2("../files/zf2human_withEntrezIDs.csv") %>%
-  dplyr::select(label = zfID, symbol = zfName) %>%
-  na.omit() %>%
-  unique()
-```
 
 # Databases used for testing
 
@@ -132,8 +113,8 @@ keggByID <- kegg  %>%
 
 ## Wiki gene sets
 ```{r wiki}
-wikidownload <- downloadPathwayArchive(organism = "Danio rerio", format = "gmt") 
-wiki <- gmtPathways("../analysis/wikipathways-20200210-gmt-Danio_rerio.gmt") 
+# wikidownload <- downloadPathwayArchive(organism = "Danio rerio", format = "gmt") 
+wiki <- gmtPathways(here::here("analysis","wikipathways-20200210-gmt-Danio_rerio.gmt"))
 wikilist <- names(wiki) %>%
   lapply(function(x){
     tibble(pathway = x, entrez_gene = wiki[[x]])
@@ -151,7 +132,7 @@ wikiByID <- wikilist  %>%
   lapply(extract2, "ensembl_gene_id")
 ```
 
-```{r}
+```{r pwf}
 pwf <- topTable %>% 
   dplyr::select(ensembl_gene_id, logFC, DE, aveLength, aveGc) %>%
   mutate(nGC = aveLength*aveGc) %>% 
@@ -182,14 +163,12 @@ plotPWF(pwf)
 
 Mappings from gene to pathway are also required, instead of the previous pathway to gene.
 
-```{r}
+```{r hallmark analysis}
 hallmarkGoseq <- pwf %>%
     goseq(gene2cat = hallmarkByGene) %>%
     as_tibble %>%
     mutate(FDR = p.adjust(over_represented_pvalue, method = "fdr"))
-```
 
-```{r, echo=FALSE}
 hallmarkGoseq %>%
     dplyr::slice(1:5) %>%
     dplyr::select(
@@ -206,14 +185,12 @@ hallmarkGoseq %>%
 
 ### KEGG Pathways
 
-```{r}
+```{r kegg analysis}
 keggGoseq <- pwf %>%
   goseq(gene2cat = keggByGene) %>%
   as_tibble %>%
   mutate(FDR = p.adjust(over_represented_pvalue, method = "fdr"))
-```
 
-```{r, echo=FALSE}
 keggGoseq %>%
     dplyr::slice(1:5) %>%
     dplyr::select(
@@ -230,14 +207,12 @@ keggGoseq %>%
 
 ### wiki pathway
 
-```{r}
+```{r wiki analysis}
 wikiGoseq <- pwf %>%
   goseq(gene2cat = wikiByGene) %>%
   as_tibble %>%
   mutate(FDR = p.adjust(over_represented_pvalue, method = "fdr"))
-```
 
-```{r, echo=FALSE}
 wikiGoseq %>%
     dplyr::slice(1:5) %>%
     dplyr::select(
@@ -254,7 +229,7 @@ wikiGoseq %>%
 
 ## Goseq GO analysis
 
-```{r}
+```{r GO analysis}
 goByGene <- links(org.Dr.egGO2ALLEGS) %>%
   as_tibble() %>%
   left_join(
@@ -264,9 +239,7 @@ goByGene <- links(org.Dr.egGO2ALLEGS) %>%
   dplyr::filter(ensembl_id %in% topTable$ensembl_gene_id) %>%
   split(f = .$ensembl_id) %>%
   lapply(extract2, "go_id")
-```
 
-```{r}
 goGoseq <- pwf %>%
   goseq(gene2cat = goByGene) %>%
   as_tibble %>%
@@ -419,8 +392,8 @@ ggraph(tidy, layout = "fr") +
 
 # IRE enrichment analysis
 
-```{r}
-ireGR <- list.files(pattern = "gff.gz") %>%
+```{r load IRE information}
+ireGR <- list.files(here::here("analysis",pattern = "gff.gz")) %>%
     sapply(rtracklayer::import.gff, simplify = FALSE) %>%
     lapply(function(x){
         tibble(
@@ -445,7 +418,7 @@ ireHigh <- lapply(ireGR, subset, quality == "High")
 ```
 
 
-```{r}
+```{r IRE goseq analysis}
 ireByGene <- c(
     names(ireGR) %>%
         lapply(function(x){
@@ -468,7 +441,7 @@ ireGoseq <- pwf %>%
    mutate(FDR = p.adjust(over_represented_pvalue, method = "fdr"))
 ```
 
-```{r, echo=FALSE}
+```{r enrichmentlist, echo=FALSE}
 ireGoseq %>%
     dplyr::slice(1:5) %>%
     dplyr::select(
@@ -494,7 +467,7 @@ ranks <- topTable %>%
   with(structure(stat, names = ensembl_gene_id))
 ```
 
-```{r IRE}
+```{r IRE GSEA}
 ireGSEA <- c(
     names(ireGR) %>%
         lapply(function(x){
@@ -529,7 +502,7 @@ fgseaIRE %>%
 ```
 
 # Data export
-```{r}
+```{r data export}
 Goseqpathway <- bind_rows(
   hallmarkGoseq,
   keggGoseq,
@@ -539,21 +512,15 @@ Goseqpathway <- bind_rows(
   dplyr::select(
     category, numDEInCat, numInCat, FDR
   ) 
-write_csv(Goseqpathway, "../output/Goseq_pathway.csv")
+write_csv(Goseqpathway, here::here("output","Goseq_pathway.csv"))
 
 # output IRE enrichment results
 
-write_csv(ireGoseq,"../output/ireGoseq_resulst.csv")
+write_csv(ireGoseq,here::here("output","ireGoseq_resulst.csv"))
 
 fgseaIREresult <- fgseaIRE %>%
   dplyr::select(
     pathway, ES, NES, size, padj
   ) 
-write_csv(fgseaIREresult,"../output/ireGSEA_resulst.csv")
-```
-
-# Session Info
-
-```{r}
-pander(sessionInfo())
+write_csv(fgseaIREresult,here::here("output","ireGSEA_resulst.csv"))
 ```

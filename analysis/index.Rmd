@@ -28,4 +28,5 @@ This mutation is generally referred to as *psen1^Q96K97^*.
 Results from all steps can be found at:
 
 1. [DE Gene Analysis](1_DE_gene_analysis.html)
-2. []
+2. [Goseq Analysis & IRE enrichment test](2_Goseq_analysis_&_IRE_enrichment_test.Rmd)
+3. [GSEA](3_GSEA.html)

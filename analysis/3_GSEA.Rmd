@@ -18,7 +18,6 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 
 ```{r packages}
 library(limma)
-library(biomaRt)
 library(edgeR)
 library(AnnotationHub)
 library(tidyverse)
@@ -30,7 +29,6 @@ library(swfdr)
 library(scales)
 library(here)
 library(variancePartition)
-library(org.Hs.eg.db)
 library(plyr)
 library(ggraph)
 library(tidygraph)
@@ -52,12 +50,12 @@ if (interactive()) setwd(here::here("analysis"))
 # Data load
 
 ```{r loaddgeList}
-dgeList <- read_rds("../data/dgeList.rds")
+dgeList <- read_rds(here::here("data","dgeList.rds"))
 entrezGenes <- dgeList$genes %>%
   dplyr::filter(!is.na(entrez_gene)) %>%
   unnest(entrez_gene) %>%
   dplyr::rename(entrez_gene = entrez_gene)
-topTable <- file.path("../output", "topTable.csv") %>% 
+topTable <- file.path(here::here("output", "topTable.csv")) %>% 
   read_csv()
 ```
 
@@ -105,7 +103,7 @@ keggByID <- kegg  %>%
 ## Wiki gene sets
 ```{r wiki}
 wikidownload <- downloadPathwayArchive(organism = "Danio rerio", format = "gmt") 
-wiki <- gmtPathways("../analysis/wikipathways-20200210-gmt-Danio_rerio.gmt") 
+wiki <- gmtPathways(here::here("analysis", "wikipathways-20200210-gmt-Danio_rerio.gmt"))
 wikilist <- names(wiki) %>%
   lapply(function(x){
     tibble(pathway = x, entrez_gene = wiki[[x]])
@@ -127,7 +125,7 @@ wikiByID <- wikilist  %>%
 
 ## Hallmark pathways
 
-```{r hallmark}
+```{r hallmark analysis}
 set.seed(22)
 # Run GSEA for hallmark
 fgseaHallmark <- fgsea(hallmarkByID, ranks, nperm=1e5) %>%
@@ -162,7 +160,7 @@ plotGseaTable(
 
 ## KEGG pathways
 
-```{r KEGG}
+```{r KEGG analysis}
 # Set seed to enable reproducibility
 set.seed(22)
 # Run GSEA for KEGG
@@ -204,7 +202,7 @@ plotGseaTable(
 
 ## WikiPathways
 
-```{r WikiPathways}
+```{r WikiPathways analysis}
 # Set seed to enable reproducibility
 set.seed(22)
 # Run GSEA for WikiPathways
@@ -248,14 +246,6 @@ GSEAresult <- bind_rows(
   dplyr::select(
     pathway, ES, NES, size, padj
   ) 
-write_csv(GSEAresult,"../output/GSEA_resulst.csv")
+write_csv(GSEAresult,here::here("output","GSEA_resulst.csv"))
 ```
-
-# Session Info
-
-```{r}
-pander(sessionInfo())
-```
-
-
 
