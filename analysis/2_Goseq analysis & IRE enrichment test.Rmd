@@ -452,7 +452,7 @@ ireByGene <- c(
         }),
     names(ireHigh) %>%
         lapply(function(x){
-            mutate(ireHigh[[x]], Type = x)
+            mutate(ireHigh[[x]], Type = paste0(x, "_High"))
         })
 ) %>%
     bind_rows() %>%
@@ -501,7 +501,7 @@ ireGSEA <- c(
         }),
     names(ireHigh) %>%
         lapply(function(x){
-            mutate(ireHigh[[x]], Type = x)
+            mutate(ireHigh[[x]], Type = paste0(x, "_High"))
         })
 ) %>%
     bind_rows() %>%
@@ -527,6 +527,29 @@ fgseaIRE %>%
   )
 ```
 
+# Data export
+```{r}
+Goseqpathway <- bind_rows(
+  hallmarkGoseq,
+  keggGoseq,
+  wikiGoseq
+) %>%
+  dplyr::filter(FDR < 0.05) %>%
+  dplyr::select(
+    category, numDEInCat, numInCat, FDR
+  ) 
+write_csv(Goseqpathway, "../output/Goseq_pathway.csv")
+
+# output IRE enrichment results
+
+write_csv(ireGoseq,"../output/ireGoseq_resulst.csv")
+
+fgseaIREresult <- fgseaIRE %>%
+  dplyr::select(
+    pathway, ES, NES, size, padj
+  ) 
+write_csv(fgseaIREresult,"../output/ireGSEA_resulst.csv")
+```
 
 # Session Info
 

@@ -155,7 +155,7 @@ fgseaHallmarkTop %>%
 # Make a table plot of significant Hallmark pathways
 if (interactive()) grid::grid.newpage()
 plotGseaTable(
-  hallmark[dplyr::filter(fgseaHallmark, padj < 0.05)$pathway], ranks, fgseaHallmark, gseaParam = 0.5
+  hallmarkByID[dplyr::filter(fgseaHallmark, padj < 0.05)$pathway], ranks, fgseaHallmark, gseaParam = 0.5
 )
 ```
 
@@ -197,7 +197,7 @@ pv.out <- pathview(gene.data = ranks,
 # Make a table plot of significant KEGG pathways
 if (interactive()) grid::grid.newpage()
 plotGseaTable(
-  kegg[fgseaKEGGTop$pathway], ranks, fgseaKEGG, gseaParam = 0.5
+  keggByID[fgseaKEGGTop$pathway], ranks, fgseaKEGG, gseaParam = 0.5
 )
 ```
 
@@ -231,10 +231,24 @@ fgseaWikiTop %>%
 # Make a table plot of significant WikiPathways pathways
 if (interactive()) grid::grid.newpage()
 plotGseaTable(
-  wiki[fgseaWikiTop$pathway], ranks, fgseaWiki, gseaParam = 0.5
+  wikiByID[fgseaWikiTop$pathway], ranks, fgseaWiki, gseaParam = 0.5
 )
 ```
 
+# Data export
+
+```{r }
+GSEAresult <- bind_rows(
+  fgseaHallmark,
+  fgseaKEGG,
+  fgseaWiki
+) %>%
+  dplyr::filter(FDR < 0.05) %>%
+  dplyr::select(
+    pathway, ES, NES, size, padj
+  ) 
+write_csv(GSEAresult,"../output/GSEA_resulst.csv")
+```
 
 # Session Info
 
