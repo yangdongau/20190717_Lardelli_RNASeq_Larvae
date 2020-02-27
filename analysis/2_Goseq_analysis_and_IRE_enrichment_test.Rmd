@@ -25,18 +25,13 @@ library(AnnotationHub)
 library(tidyverse)
 library(magrittr)
 library(pander)
-library(RColorBrewer)
 library(ggrepel)
-library(swfdr)
 library(scales)
-library(here)
 library(org.Hs.eg.db)
 library(plyr)
 library(ggraph)
 library(tidygraph)
 library(fgsea)
-library(GenomicRanges)
-library(kableExtra)
 library(goseq)
 library(org.Dr.eg.db)
 library(msigdbr)
@@ -48,9 +43,8 @@ panderOptions("table.style", "rmarkdown")
 if (interactive()) setwd(here::here("analysis"))
 ```
 
-The first step here is to map the Ensembl zebrafish gene IDs to Human Entrez gene IDs.
 
-#
+Annotation was set up as a EnsDb object based on Ensembl Release 96.
 
 ```{r ensDb}
 ah <- AnnotationHub() %>%
@@ -114,7 +108,7 @@ keggByID <- kegg  %>%
 
 ## Wiki gene sets
 ```{r wiki}
-# wikidownload <- downloadPathwayArchive(organism = "Danio rerio", format = "gmt") 
+wikidownload <- downloadPathwayArchive(organism = "Danio rerio", format = "gmt") 
 wiki <- gmtPathways(here::here("analysis","wikipathways-20200210-gmt-Danio_rerio.gmt"))
 wikilist <- names(wiki) %>%
   lapply(function(x){
@@ -394,7 +388,7 @@ ggraph(tidy, layout = "fr") +
 # IRE enrichment analysis
 
 ```{r load IRE information}
-ireGR <- list.files(here::here("analysis",pattern = "gff.gz")) %>%
+ireGR <- list.files(path = here::here("analysis"),pattern = "gff.gz") %>%
     sapply(rtracklayer::import.gff, simplify = FALSE) %>%
     lapply(function(x){
         tibble(
