@@ -19,26 +19,14 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 
 ```{r packages}
 library(limma)
-library(biomaRt)
 library(edgeR)
 library(AnnotationHub)
 library(tidyverse)
 library(magrittr)
 library(pander)
-library(RColorBrewer)
 library(ggrepel)
-library(swfdr)
 library(scales)
-library(here)
-library(variancePartition)
-library(org.Hs.eg.db)
-library(plyr)
-library(ggraph)
-library(tidygraph)
 library(RUVSeq)
-library(GenomicRanges)
-library(kableExtra)
-library(org.Dr.eg.db)
 theme_set(theme_bw())
 panderOptions("big.mark", ",")
 panderOptions("table.split.table", Inf)
@@ -50,34 +38,12 @@ if (interactive()) setwd(here::here("analysis"))
 # Get GC content and lengths
 gcTrans <- url("https://uofabioinformaticshub.github.io/Ensembl_GC/Release96/Danio_rerio.GRCz11.96.rds") %>%
   readRDS()
-# Convert to the gene-level with average length, average GC, max length, and GC of longest transcript for all transcripts assigned to a single gene.
-# gcGene <- gcTrans %>%
-#   split(f = .$gene_id) %>%
-#   mclapply(function(x){
-#     gr <- reduce(x)
-#     df <- DataFrame(
-#       gene_id = unique(x$gene_id),
-#       gene_symbol = unique(x$gene_symbol),
-#       aveLength = round(mean(x$length),0) %>% as.integer(),
-#       aveGc = sum(x$length * x$gc) / sum(x$length),
-#       maxLength = max(x$length),
-#       longestGc = x$gc[which.max(x$length)[[1]]]
-#     )
-#     mcols(gr) <- df
-#     gr
-#   }, mc.cores = 4) %>%
-#   GRangesList() %>%
-#   unlist() %>%
-#   na.omit()
-# x# This takes a reasonable amount of time
-# # Save as .rds file for faster loading
-# saveRDS(gcGene, file = "../R/gcGene.rds")
-gcGene <- readRDS("../analysis/gcGene.rds")
+gcGene <- readRDS(here::here("analysis", "gcGene.rds"))
 ```
 
 Annotation was set up as a EnsDb object based on Ensembl Release 96
 
-```{r ensDb, cache=TRUE}
+```{r ensDb}
 ah <- AnnotationHub() %>%
   subset(species == "Danio rerio") %>%
   subset(dataprovider == "Ensembl") %>%
@@ -85,8 +51,8 @@ ah <- AnnotationHub() %>%
 ensDb <- ah[["AH69169"]]
 genes <- genes(ensDb)
 transGR <- transcripts(ensDb)
-mcols(genes) <- mcols(genes)[c("gene_id", "gene_name", 
-                                   "gene_biotype", "entrezid","description","entrezid")] %>%
+cols2keep <- c("gene_id", "gene_name", "gene_biotype", "entrezid","description","entrezid")
+mcols(genes) <- mcols(genes)[cols2keep] %>%
   as.data.frame() %>%
   dplyr::select(-entrezid) %>%
   left_join(as.data.frame(mcols(gcGene))) %>%
@@ -115,7 +81,7 @@ minCpm <- 1
 ```
 
 ```{r counts}
-counts <- file.path("../data/2_alignedData/featureCounts/genes.out") %>%
+counts <- here::here("data", "2_alignedData", "featureCounts", "genes.out") %>%
 	read_tsv() %>%
 	set_colnames(basename(colnames(.))) %>%
 	set_colnames(str_remove(colnames(.), "Aligned.+")) %>%
@@ -176,50 +142,41 @@ Library sizes after alignment, counting and gene filtering ranged between `r pan
 
 # Data Inspection
 
-```{r v}
-v <- dgeList %>%
-	voomWithQualityWeights(design = matrix(1, nrow = ncol(.)))
-```
-
-```{r plotWeights, echo=FALSE, fig.cap = "Sample weights with the ideal equal weight of 1 shown as a horizontal line."}
-v$targets %>%
-	ggplot(aes(sample, sample.weights, fill = Genotype)) +
-	geom_bar(stat = "identity") +
-	geom_hline(yintercept = 1, colour = "blue", linetype = 2) +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
-```
-
 ```{r pca}
-pca <- v$E %>%
-    t() %>%
-    prcomp() 
+pca <- dgeList %>%
+  cpm(log = TRUE) %>%
+  t() %>%
+  prcomp()
+```
+
+```{r}
 summary(pca)$importance %>% pander(split.tables = Inf)    
 ```
+
 
 ```{r plotPCA, echo=FALSE, fig.cap = "PCA of all samples. Point sizes indicate library sizes with the combination of PC1 & PC2 appearing to capture a considerable amount of this variation."}
 pca$x %>%
 	as.data.frame() %>%
 	rownames_to_column("sample") %>%
-	left_join(v$targets) %>%
+	left_join(dgeList$samples) %>%
 	ggplot(aes(PC1, PC2, colour = Genotype)) +
-	geom_point(aes(size = sample.weights)) +
-	geom_text_repel(aes(label = sample), show.legend = FALSE) +
+	geom_point() +
+	geom_text_repel(aes(label = pair), show.legend = FALSE) +
 	labs(size = "Sample weight") +
   xlab(paste0("PC1 (", percent(summary(pca)$importance[2,"PC1"]), ")")) +
   ylab(paste0("PC2 (", percent(summary(pca)$importance[2,"PC2"]), ")")) +
 	theme(legend.title.align = 0.5)
 ```
 
-#DGE Analysis
+# DGE Analysis
 
-## Setup a design matrix using each pool as its own intercept, with the genotype as the common difference
-```{r}
+## Design Marix
+
+Next we setup a design matrix using each pool as its own intercept, with the genotype as the common difference, and recalculated the dispersions
+
+```{r expDesign}
 expDesign <- model.matrix(~0 + pair + Genotype, dgeList$samples) %>%
   set_colnames(str_replace(colnames(.), pattern = "Genotype.+", "Mutant"))
-```
-
-## Recalculate the dispersions
-```{r}
 dgeList %<>%
   estimateGLMCommonDisp(expDesign) %>%
   estimateGLMTagwiseDisp(expDesign)
@@ -247,7 +204,7 @@ deGenesSig <- deGenes %>%
 ```
 
 
-```{r volcano, echo=FALSE, fig.cap = "Volcano plot highlighting DE genes. Genes indicated in red belowd were considered as DE, which receive a FDR < 0.05."}
+```{r volcano, echo=FALSE, fig.cap = "Volcano plot highlighting DE genes. Genes indicated in red were considered as DE, which receive a FDR < 0.05."}
 deGenes %>%
   ggplot(aes(logFC, -log10(PValue), colour = Sig)) +
   geom_point() +
@@ -256,7 +213,7 @@ deGenes %>%
   geom_vline(xintercept = c(-1, 1)*0.5, linetype = 2, colour = "grey50") +
   geom_hline(yintercept = deGenes %>%
 			   	dplyr::filter(FDR < 0.05) %>%
-			   	.[["P.Value"]] %>%
+			   	.[["PValue"]] %>%
 			   	max() %>% 
 			   	log(10) %>%
 			   	multiply_by(-1), 
@@ -283,7 +240,9 @@ deGenes %>%
 ```
 
 # RUV treatment (Remove Unwanted Variation)
-# Find some 'unchanged' genes. Grab the lowest ranked 5000
+
+Find some 'unchanged' genes. Grab the lowest ranked 5000
+
 ```{r}
 genes4Control <- deGenes %>%
   arrange(desc(PValue)) %>%
@@ -314,7 +273,8 @@ pcaRUV$x %>%
   cbind(dgeList$samples[rownames(.),]) %>%
   ggplot(aes(PC1, PC2, colour = Genotype)) +
   geom_point() +
-  stat_ellipse(aes(fill = Genotype), geom = "polygon", alpha = 0.2) +
+  geom_text_repel(aes(label = pair), show.legend = FALSE) +
+  stat_ellipse(aes(fill = Genotype), geom = "polygon", alpha = 0.05) +
   xlab(
     paste0(
       "PC1 (", percent(summary(pcaRUV)$importance[2, "PC1"]), ")"
@@ -421,8 +381,8 @@ The `r sum(topTable$DE)` genes considered as DE using an FDR of 0.01 and logFC b
 
 Here plot CPM for DE genes having a FDR below 0.01 and logFC beyond the range $\pm 1.2$
 
-```{r plotCPM, echo=FALSE, fig.cap="Expression values for each of the potential DE genes using raw CPM values and a log-scale y-axis."}
-dgeList %>%
+```{r}
+ruv$normalizedCounts %>%
 	cpm(log = TRUE) %>%
 	.[dplyr::filter(topTable, FDR < 0.01 & abs(logFC) > 1.2)$ensembl_gene_id,] %>%
 	as.data.frame() %>%
@@ -431,12 +391,17 @@ dgeList %>%
 	gather(key = "sample", value = "CPM", -ensembl_gene_id) %>%
 	left_join(dgeList$samples) %>%
 	left_join(dgeList$genes) %>%
-	ggplot(aes(group, CPM)) +
-	geom_boxplot(aes(fill = group)) +
-	geom_jitter(width = 0.1) +
-	facet_wrap(~external_gene_name, scales = "free_y") +
-	theme(legend.position = "none")
+  ggplot(aes(Genotype, CPM)) +
+  geom_point(aes(colour = Genotype)) +
+  geom_line(
+    aes(group = pair),
+    colour = "grey70"
+  ) +
+  facet_wrap(~external_gene_name, scales = "free_y") +
+	theme(legend.position = "none") +
+  labs(y = "logCPM")
 ```
+
 
 
 # Data Export
@@ -444,13 +409,8 @@ dgeList %>%
 Final gene lists were exported as separate csv files, along with dgeList objects.
 
 ```{r writeResults}
-write.csv(topTableDE,"../output/DEgenes.csv")
-write.csv(topTable,"../output/topTable.csv")
-write_rds(dgeList, "../data/dgeList.rds", compress = "gz")
+write.csv(topTableDE, here::here("output", "DEgenes.csv"))
+write.csv(topTable,here::here("output", "topTable.csv"))
+write_rds(dgeList, here::here("data", "dgeList.rds"), compress = "gz")
 ```
 
-# Session Info
-
-```{r}
-pander(sessionInfo())
-```

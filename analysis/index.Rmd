@@ -25,3 +25,7 @@ This website contains the analysis of RNAseq data from an experiment comparing z
 One genotype represented wild-type larvae, whilst the other genotype was a heterozygous mutation for the gene *psen1*, in which 6 nucleotides were deleted, to remove the two amino acids Q96 and K97.
 This mutation is generally referred to as *psen1^Q96K97^*.
 
+Results from all steps can be found at:
+
+1. [DE Gene Analysis](1_DE_gene_analysis.html)
+2. []
