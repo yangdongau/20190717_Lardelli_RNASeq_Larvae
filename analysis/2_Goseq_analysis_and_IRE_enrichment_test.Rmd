@@ -51,6 +51,7 @@ if (interactive()) setwd(here::here("analysis"))
 The first step here is to map the Ensembl zebrafish gene IDs to Human Entrez gene IDs.
 
 #
+
 ```{r ensDb}
 ah <- AnnotationHub() %>%
   subset(species == "Danio rerio") %>%
@@ -418,7 +419,7 @@ ireHigh <- lapply(ireGR, subset, quality == "High")
 ```
 
 
-```{r IRE goseq analysis}
+```{r IREgoseq analysis}
 ireByGene <- c(
     names(ireGR) %>%
         lapply(function(x){
