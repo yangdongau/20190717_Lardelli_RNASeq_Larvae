@@ -406,7 +406,7 @@ div.section {
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2020-02-27
+<strong>Last updated:</strong> 2020-02-28
 </p>
 <p>
 <strong>Checks:</strong> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 6 <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span> 1
@@ -430,7 +430,7 @@ This reproducible <a href="http://rmarkdown.rstudio.com">R Markdown</a> analysis
 </div>
 <div id="strongRMarkdownfilestronguncommittedchanges" class="panel-collapse collapse">
 <div class="panel-body">
-<p>The R Markdown file has staged changes. To know which version of the R Markdown file created these results, you’ll want to first commit it to the Git repo. If you’re still working on the analysis, you can ignore this warning. When you’re finished, you can run <code>wflow_publish</code> to commit the R Markdown file and build the HTML.</p>
+<p>The R Markdown file has unstaged changes. To know which version of the R Markdown file created these results, you’ll want to first commit it to the Git repo. If you’re still working on the analysis, you can ignore this warning. When you’re finished, you can run <code>wflow_publish</code> to commit the R Markdown file and build the HTML.</p>
 </div>
 </div>
 </div>
@@ -497,10 +497,10 @@ This reproducible <a href="http://rmarkdown.rstudio.com">R Markdown</a> analysis
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomyangdongau20190717LardelliRNASeqLarvaetreedc5cbe9b1bcd7b7407a4ceb2c39fbd97abc69a40targetblankdc5cbe9a"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> <a href="https://github.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/tree/dc5cbe9b1bcd7b7407a4ceb2c39fbd97abc69a40" target="_blank">dc5cbe9</a> </a>
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomyangdongau20190717LardelliRNASeqLarvaetreecfc2be0a7b200641c37c23f358ce9dbaa4ec0e82targetblankcfc2be0a"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> <a href="https://github.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/tree/cfc2be0a7b200641c37c23f358ce9dbaa4ec0e82" target="_blank">cfc2be0</a> </a>
 </p>
 </div>
-<div id="strongRepositoryversionstrongahrefhttpsgithubcomyangdongau20190717LardelliRNASeqLarvaetreedc5cbe9b1bcd7b7407a4ceb2c39fbd97abc69a40targetblankdc5cbe9a" class="panel-collapse collapse">
+<div id="strongRepositoryversionstrongahrefhttpsgithubcomyangdongau20190717LardelliRNASeqLarvaetreecfc2be0a7b200641c37c23f358ce9dbaa4ec0e82targetblankcfc2be0a" class="panel-collapse collapse">
 <div class="panel-body">
 <p>
 Great! You are using Git for version control. Tracking code development and connecting the code version to the results is critical for reproducibility. The version displayed above was the version of the Git repository at the time these results were generated. <br><br> Note that you need to be careful to ensure that all relevant files for the analysis have been committed to Git prior to generating the results (you can use <code>wflow_publish</code> or <code>wflow_git_commit</code>). workflowr only checks the R Markdown file, but you know if there are other scripts or data files that it depends on. Below is the status of the Git repository when the results were generated:
@@ -516,8 +516,6 @@ Ignored files:
     Ignored:    analysis/.DS_Store
     Ignored:    analysis/.Rhistory
     Ignored:    analysis/.Rproj.user/
-    Ignored:    analysis/PairedAnalysiswithRUV_cache/
-    Ignored:    analysis/PairedAnalysiswithRUV_files/
     Ignored:    data/.DS_Store
     Ignored:    data/0_rawData/.DS_Store
     Ignored:    data/1_trimmedData/.DS_Store
@@ -529,9 +527,11 @@ Untracked files:
     Untracked:  dre00010.pathview.png
     Untracked:  dre00010.png
     Untracked:  dre00010.xml
+    Untracked:  keggdiagram/
 
-Staged changes:
+Unstaged changes:
     Modified:   analysis/3_GSEA.Rmd
+    Modified:   output/ireGSEA_resulst.csv
 
 </code></pre>
 <p>
@@ -570,6 +570,40 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/blob/0ce8f79e106812abb972cef571f87585fca95092/analysis/3_GSEA.Rmd" target="_blank">0ce8f79</a>
+</td>
+<td>
+yangdongau
+</td>
+<td>
+2020-02-27
+</td>
+<td>
+clean up library packages
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/0ce8f79e106812abb972cef571f87585fca95092/docs/3_GSEA.html" target="_blank">0ce8f79</a>
+</td>
+<td>
+yangdongau
+</td>
+<td>
+2020-02-27
+</td>
+<td>
+clean up library packages
+</td>
+</tr>
 <tr>
 <td>
 Rmd
@@ -1150,12 +1184,6 @@ fgseaKEGGTop %&gt;%
 </tr>
 </tbody>
 </table>
-<pre class="r"><code>pv.out &lt;- pathview(gene.data = ranks, 
-         pathway.id = &quot;00010&quot;, 
-         species = &quot;Danio rerio&quot;, 
-         gene.idtype = &quot;ENSEMBL&quot;,
-         limit = list(gene=5, cpd=1))</code></pre>
-<pre><code>[1] &quot;Note: 1192 of 19396 unique input IDs unmapped.&quot;</code></pre>
 <pre class="r"><code># Make a table plot of significant KEGG pathways
 if (interactive()) grid::grid.newpage()
 plotGseaTable(
@@ -1341,6 +1369,77 @@ yangdongau
     pathway, ES, NES, size, padj
   ) 
 write_csv(GSEAresult,here::here(&quot;output&quot;,&quot;GSEA_resulst.csv&quot;))</code></pre>
+<pre class="r"><code>setwd(here::here(&quot;keggdiagram&quot;))
+# ECM receptor interaction 
+pv.out &lt;- pathview(gene.data = ranks, 
+         pathway.id = &quot;04512&quot;, 
+         species = &quot;Danio rerio&quot;, 
+         gene.idtype = &quot;ENSEMBL&quot;,
+         limit = list(gene=5, cpd=1))</code></pre>
+<pre><code>[1] &quot;Note: 1192 of 19396 unique input IDs unmapped.&quot;</code></pre>
+<pre class="r"><code># Fatty acid metabolism
+pv.out &lt;- pathview(gene.data = ranks, 
+         pathway.id = &quot;01212&quot;, 
+         species = &quot;Danio rerio&quot;, 
+         gene.idtype = &quot;ENSEMBL&quot;,
+         limit = list(gene=5, cpd=1))</code></pre>
+<pre><code>[1] &quot;Note: 1192 of 19396 unique input IDs unmapped.&quot;</code></pre>
+<pre class="r"><code># Beta-Alanline metabolism
+pv.out &lt;- pathview(gene.data = ranks, 
+         pathway.id = &quot;00410&quot;, 
+         species = &quot;Danio rerio&quot;, 
+         gene.idtype = &quot;ENSEMBL&quot;,
+         limit = list(gene=5, cpd=1))</code></pre>
+<pre><code>[1] &quot;Note: 1192 of 19396 unique input IDs unmapped.&quot;</code></pre>
+<pre class="r"><code># Glutathion metabolism
+pv.out &lt;- pathview(gene.data = ranks, 
+         pathway.id = &quot;00480&quot;, 
+         species = &quot;Danio rerio&quot;, 
+         gene.idtype = &quot;ENSEMBL&quot;,
+         limit = list(gene=5, cpd=1))</code></pre>
+<pre><code>[1] &quot;Note: 1192 of 19396 unique input IDs unmapped.&quot;</code></pre>
+<pre class="r"><code># Cell cycle
+pv.out &lt;- pathview(gene.data = ranks, 
+         pathway.id = &quot;04110&quot;, 
+         species = &quot;Danio rerio&quot;, 
+         gene.idtype = &quot;ENSEMBL&quot;,
+         limit = list(gene=5, cpd=1))</code></pre>
+<pre><code>[1] &quot;Note: 1192 of 19396 unique input IDs unmapped.&quot;</code></pre>
+<pre class="r"><code># DNA replication
+pv.out &lt;- pathview(gene.data = ranks, 
+         pathway.id = &quot;03030&quot;, 
+         species = &quot;Danio rerio&quot;, 
+         gene.idtype = &quot;ENSEMBL&quot;,
+         limit = list(gene=5, cpd=1))</code></pre>
+<pre><code>[1] &quot;Note: 1192 of 19396 unique input IDs unmapped.&quot;</code></pre>
+<pre class="r"><code># Pyrimidine metabolism
+pv.out &lt;- pathview(gene.data = ranks, 
+         pathway.id = &quot;00240&quot;, 
+         species = &quot;Danio rerio&quot;, 
+         gene.idtype = &quot;ENSEMBL&quot;,
+         limit = list(gene=5, cpd=1))</code></pre>
+<pre><code>[1] &quot;Note: 1192 of 19396 unique input IDs unmapped.&quot;</code></pre>
+<pre class="r"><code># Butanoate metabolism
+pv.out &lt;- pathview(gene.data = ranks, 
+         pathway.id = &quot;00650&quot;, 
+         species = &quot;Danio rerio&quot;, 
+         gene.idtype = &quot;ENSEMBL&quot;,
+         limit = list(gene=5, cpd=1))</code></pre>
+<pre><code>[1] &quot;Note: 1192 of 19396 unique input IDs unmapped.&quot;</code></pre>
+<pre class="r"><code># Focal adhesion
+pv.out &lt;- pathview(gene.data = ranks, 
+         pathway.id = &quot;04510&quot;, 
+         species = &quot;Danio rerio&quot;, 
+         gene.idtype = &quot;ENSEMBL&quot;,
+         limit = list(gene=5, cpd=1))</code></pre>
+<pre><code>[1] &quot;Note: 1192 of 19396 unique input IDs unmapped.&quot;</code></pre>
+<pre class="r"><code># Oxidative phosphorylation
+pv.out &lt;- pathview(gene.data = ranks, 
+         pathway.id = &quot;00190&quot;, 
+         species = &quot;Danio rerio&quot;, 
+         gene.idtype = &quot;ENSEMBL&quot;,
+         limit = list(gene=5, cpd=1))</code></pre>
+<pre><code>[1] &quot;Note: 1192 of 19396 unique input IDs unmapped.&quot;</code></pre>
 <br>
 <p>
 <button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
@@ -1359,7 +1458,7 @@ write_csv(GSEAresult,here::here(&quot;output&quot;,&quot;GSEA_resulst.csv&quot;)
  collate  en_AU.UTF-8                 
  ctype    en_AU.UTF-8                 
  tz       Australia/Adelaide          
- date     2020-02-27                  
+ date     2020-02-28                  
 
 ─ Packages ──────────────────────────────────────────────────────────────
  package       * version   date       lib source        

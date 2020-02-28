@@ -175,14 +175,6 @@ fgseaKEGGTop %>%
   )
 ```
 
-```{r visualise a pathway}
-pv.out <- pathview(gene.data = ranks, 
-         pathway.id = "00010", 
-         species = "Danio rerio", 
-         gene.idtype = "ENSEMBL",
-         limit = list(gene=5, cpd=1))
-```
-
 ```{r fig.align = "center"}
 # Make a table plot of significant KEGG pathways
 if (interactive()) grid::grid.newpage()
@@ -240,3 +232,75 @@ GSEAresult <- bind_rows(
 write_csv(GSEAresult,here::here("output","GSEA_resulst.csv"))
 ```
 
+```{r plot keggdiagram}
+setwd(here::here("keggdiagram"))
+# ECM receptor interaction 
+pv.out <- pathview(gene.data = ranks, 
+         pathway.id = "04512", 
+         species = "Danio rerio", 
+         gene.idtype = "ENSEMBL",
+         limit = list(gene=5, cpd=1))
+
+# Fatty acid metabolism
+pv.out <- pathview(gene.data = ranks, 
+         pathway.id = "01212", 
+         species = "Danio rerio", 
+         gene.idtype = "ENSEMBL",
+         limit = list(gene=5, cpd=1))
+
+# Beta-Alanline metabolism
+pv.out <- pathview(gene.data = ranks, 
+         pathway.id = "00410", 
+         species = "Danio rerio", 
+         gene.idtype = "ENSEMBL",
+         limit = list(gene=5, cpd=1))
+
+# Glutathion metabolism
+pv.out <- pathview(gene.data = ranks, 
+         pathway.id = "00480", 
+         species = "Danio rerio", 
+         gene.idtype = "ENSEMBL",
+         limit = list(gene=5, cpd=1))
+
+# Cell cycle
+pv.out <- pathview(gene.data = ranks, 
+         pathway.id = "04110", 
+         species = "Danio rerio", 
+         gene.idtype = "ENSEMBL",
+         limit = list(gene=5, cpd=1))
+
+# DNA replication
+pv.out <- pathview(gene.data = ranks, 
+         pathway.id = "03030", 
+         species = "Danio rerio", 
+         gene.idtype = "ENSEMBL",
+         limit = list(gene=5, cpd=1))
+
+# Pyrimidine metabolism
+pv.out <- pathview(gene.data = ranks, 
+         pathway.id = "00240", 
+         species = "Danio rerio", 
+         gene.idtype = "ENSEMBL",
+         limit = list(gene=5, cpd=1))
+
+# Butanoate metabolism
+pv.out <- pathview(gene.data = ranks, 
+         pathway.id = "00650", 
+         species = "Danio rerio", 
+         gene.idtype = "ENSEMBL",
+         limit = list(gene=5, cpd=1))
+
+# Focal adhesion
+pv.out <- pathview(gene.data = ranks, 
+         pathway.id = "04510", 
+         species = "Danio rerio", 
+         gene.idtype = "ENSEMBL",
+         limit = list(gene=5, cpd=1))
+
+# Oxidative phosphorylation
+pv.out <- pathview(gene.data = ranks, 
+         pathway.id = "00190", 
+         species = "Danio rerio", 
+         gene.idtype = "ENSEMBL",
+         limit = list(gene=5, cpd=1))
+```

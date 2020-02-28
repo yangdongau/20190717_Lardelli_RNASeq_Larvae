@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE pathway SYSTEM "http://www.kegg.jp/kegg/xml/KGML_v0.7.2_.dtd">
-<!-- Creation date: Jan 17, 2020 16:07:31 +0900 (GMT+9) -->
+<!-- Creation date: Jan 31, 2020 14:36:59 +0900 (GMT+9) -->
 <pathway name="path:dre00190" org="dre" number="00190"
          title="Oxidative phosphorylation"
          image="http://www.kegg.jp/kegg/pathway/dre/dre00190.png"
@@ -743,32 +743,32 @@
     <entry id="158" name="ko:K00426" type="ortholog"
         link="http://www.kegg.jp/dbget-bin/www_bget?K00426">
         <graphics name="K00426" fgcolor="#000000" bgcolor="#FFFFFF"
-             type="rectangle" x="688" y="813" width="46" height="17"/>
+             type="rectangle" x="688" y="822" width="46" height="17"/>
     </entry>
     <entry id="159" name="ko:K00425" type="ortholog"
         link="http://www.kegg.jp/dbget-bin/www_bget?K00425">
         <graphics name="K00425" fgcolor="#000000" bgcolor="#FFFFFF"
-             type="rectangle" x="642" y="813" width="46" height="17"/>
+             type="rectangle" x="642" y="822" width="46" height="17"/>
     </entry>
     <entry id="160" name="ko:K00406" type="ortholog"
         link="http://www.kegg.jp/dbget-bin/www_bget?K00406">
         <graphics name="K00406" fgcolor="#000000" bgcolor="#FFFFFF"
-             type="rectangle" x="550" y="813" width="46" height="17"/>
+             type="rectangle" x="550" y="822" width="46" height="17"/>
     </entry>
     <entry id="161" name="ko:K00407" type="ortholog"
         link="http://www.kegg.jp/dbget-bin/www_bget?K00407">
         <graphics name="K00407" fgcolor="#000000" bgcolor="#FFFFFF"
-             type="rectangle" x="504" y="813" width="46" height="17"/>
+             type="rectangle" x="504" y="822" width="46" height="17"/>
     </entry>
     <entry id="162" name="ko:K00405 ko:K15862" type="ortholog"
         link="http://www.kegg.jp/dbget-bin/www_bget?K00405+K15862">
         <graphics name="K00405..." fgcolor="#000000" bgcolor="#FFFFFF"
-             type="rectangle" x="458" y="813" width="46" height="17"/>
+             type="rectangle" x="458" y="822" width="46" height="17"/>
     </entry>
     <entry id="163" name="ko:K00404 ko:K15862" type="ortholog"
         link="http://www.kegg.jp/dbget-bin/www_bget?K00404+K15862">
         <graphics name="K00404..." fgcolor="#000000" bgcolor="#FFFFFF"
-             type="rectangle" x="412" y="813" width="46" height="17"/>
+             type="rectangle" x="412" y="822" width="46" height="17"/>
     </entry>
     <entry id="164" name="dre:393478 dre:436968" type="gene"
         link="http://www.kegg.jp/dbget-bin/www_bget?dre:393478+dre:436968">
@@ -1098,7 +1098,27 @@
     <entry id="258" name="ko:K00424 ko:K22501" type="ortholog"
         link="http://www.kegg.jp/dbget-bin/www_bget?K00424+K22501">
         <graphics name="K00424..." fgcolor="#000000" bgcolor="#FFFFFF"
-             type="rectangle" x="734" y="813" width="46" height="17"/>
+             type="rectangle" x="734" y="822" width="46" height="17"/>
+    </entry>
+    <entry id="259" name="ko:K24010" type="ortholog"
+        link="http://www.kegg.jp/dbget-bin/www_bget?K24010">
+        <graphics name="K24010" fgcolor="#000000" bgcolor="#FFFFFF"
+             type="rectangle" x="274" y="829" width="46" height="17"/>
+    </entry>
+    <entry id="260" name="ko:K24009 ko:K24011" type="ortholog"
+        link="http://www.kegg.jp/dbget-bin/www_bget?K24009+K24011">
+        <graphics name="K24009..." fgcolor="#000000" bgcolor="#FFFFFF"
+             type="rectangle" x="228" y="829" width="46" height="17"/>
+    </entry>
+    <entry id="261" name="ko:K24008 ko:K24011" type="ortholog"
+        link="http://www.kegg.jp/dbget-bin/www_bget?K24008+K24011">
+        <graphics name="K24008..." fgcolor="#000000" bgcolor="#FFFFFF"
+             type="rectangle" x="182" y="829" width="46" height="17"/>
+    </entry>
+    <entry id="262" name="ko:K24007" type="ortholog"
+        link="http://www.kegg.jp/dbget-bin/www_bget?K24007">
+        <graphics name="K24007" fgcolor="#000000" bgcolor="#FFFFFF"
+             type="rectangle" x="136" y="829" width="46" height="17"/>
     </entry>
     <relation entry1="112" entry2="115" type="ECrel">
         <subtype name="compound" value="129"/>
