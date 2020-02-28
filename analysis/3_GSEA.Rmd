@@ -51,6 +51,9 @@ topTable <- file.path(here::here("output", "topTable.csv")) %>%
 ```
 
 # Gene ranks
+
+Genes were ranked by -sign(logFC)*log10(PValue).
+
 ```{r rank genes}
 ranks <- topTable %>%
   mutate(stat = -sign(logFC) * log10(PValue)) %>%
@@ -61,9 +64,9 @@ ranks <- topTable %>%
 
 # Databases used for testing
 
-## Hallmark Gene Sets
+Hallmark and KEGG pathway gene mappings were achieved by `msigdbr`, and Wiki pathway gene mapping was downloaded by `rWikiPathways`.
 
-```{r hallmark}
+```{r hallmark gene set}
 hallmark <- msigdbr("Danio rerio", category = "H")  %>% 
   left_join(entrezGenes) %>%
   dplyr::filter(!is.na(ensembl_gene_id)) %>%
@@ -76,8 +79,7 @@ hallmarkByID <- hallmark %>%
   lapply(extract2, "ensembl_gene_id")
 ```
 
-## KEGG gene sets
-```{r kegg}
+```{r kegg gene sets}
 kegg <- msigdbr("Danio rerio", category = "C2", subcategory = "CP:KEGG")  %>% 
   left_join(entrezGenes) %>%
   dplyr::filter(!is.na(ensembl_gene_id)) %>%
@@ -90,9 +92,7 @@ keggByID <- kegg  %>%
   lapply(extract2, "ensembl_gene_id")
 ```
 
-
-## Wiki gene sets
-```{r wiki}
+```{r wiki gene sets}
 wikidownload <- downloadPathwayArchive(organism = "Danio rerio", format = "gmt") 
 wiki <- gmtPathways(here::here("analysis", "wikipathways-20200210-gmt-Danio_rerio.gmt"))
 wikilist <- names(wiki) %>%
@@ -113,6 +113,8 @@ wikiByID <- wikilist  %>%
 ```
 
 # Gene Set Enrichment analysis (GSEA)
+
+Enrichment analysis of each pathway data sets were performed by `fgsea`, using gene ranks and mappings. A bonferroni-correction cutoff of 0.05 was used to identify signficant results.
 
 ## Hallmark pathways
 
@@ -231,6 +233,7 @@ GSEAresult <- bind_rows(
   ) 
 write_csv(GSEAresult,here::here("output","GSEA_resulst.csv"))
 ```
+Use `pathview` to plot each significant KEGG pathway so as to visualize the changes.
 
 ```{r plot keggdiagram}
 setwd(here::here("keggdiagram"))

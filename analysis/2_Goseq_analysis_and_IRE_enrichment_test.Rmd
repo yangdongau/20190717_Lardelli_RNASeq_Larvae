@@ -77,9 +77,9 @@ topTableDE <- file.path(here::here("output", "DEgenes.csv")) %>%
 
 # Databases used for testing
 
-## Hallmark Gene Sets
+Hallmark and KEGG pathway gene mappings were achieved by `msigdbr`, and Wiki pathway gene mapping was downloaded by `rWikiPathways`.
 
-```{r hallmark}
+```{r hallmark gene sets}
 hallmark <- msigdbr("Danio rerio", category = "H")  %>% 
   left_join(entrezGenes) %>%
   dplyr::filter(!is.na(ensembl_gene_id)) %>%
@@ -92,8 +92,7 @@ hallmarkByID <- hallmark %>%
   lapply(extract2, "ensembl_gene_id")
 ```
 
-## KEGG gene sets
-```{r kegg}
+```{r kegg gene sets}
 kegg <- msigdbr("Danio rerio", category = "C2", subcategory = "CP:KEGG")  %>% 
   left_join(entrezGenes) %>%
   dplyr::filter(!is.na(ensembl_gene_id)) %>%
@@ -106,8 +105,7 @@ keggByID <- kegg  %>%
   lapply(extract2, "ensembl_gene_id")
 ```
 
-## Wiki gene sets
-```{r wiki}
+```{r wiki gene sets}
 wikidownload <- downloadPathwayArchive(organism = "Danio rerio", format = "gmt") 
 wiki <- gmtPathways(here::here("analysis","wikipathways-20200210-gmt-Danio_rerio.gmt"))
 wikilist <- names(wiki) %>%
@@ -126,6 +124,10 @@ wikiByID <- wikilist  %>%
   split(f = .$pathway) %>%
   lapply(extract2, "ensembl_gene_id")
 ```
+
+# GOseq analysis
+
+Calculate pwf using gene lengths as bia data.
 
 ```{r pwf}
 pwf <- topTable %>% 
