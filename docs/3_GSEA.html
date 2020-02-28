@@ -430,7 +430,7 @@ This reproducible <a href="http://rmarkdown.rstudio.com">R Markdown</a> analysis
 </div>
 <div id="strongRMarkdownfilestronguncommittedchanges" class="panel-collapse collapse">
 <div class="panel-body">
-<p>The R Markdown file has unstaged changes. To know which version of the R Markdown file created these results, you’ll want to first commit it to the Git repo. If you’re still working on the analysis, you can ignore this warning. When you’re finished, you can run <code>wflow_publish</code> to commit the R Markdown file and build the HTML.</p>
+<p>The R Markdown file has staged changes. To know which version of the R Markdown file created these results, you’ll want to first commit it to the Git repo. If you’re still working on the analysis, you can ignore this warning. When you’re finished, you can run <code>wflow_publish</code> to commit the R Markdown file and build the HTML.</p>
 </div>
 </div>
 </div>
@@ -497,10 +497,10 @@ This reproducible <a href="http://rmarkdown.rstudio.com">R Markdown</a> analysis
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomyangdongau20190717LardelliRNASeqLarvaetree91568d262ed39c00e75ce7521f3fb53d475b0ec1targetblank91568d2a"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> <a href="https://github.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/tree/91568d262ed39c00e75ce7521f3fb53d475b0ec1" target="_blank">91568d2</a> </a>
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomyangdongau20190717LardelliRNASeqLarvaetree4e8adcc6c9c901dcbf2add6a3ae594a6244e1caetargetblank4e8adcca"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> <a href="https://github.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/tree/4e8adcc6c9c901dcbf2add6a3ae594a6244e1cae" target="_blank">4e8adcc</a> </a>
 </p>
 </div>
-<div id="strongRepositoryversionstrongahrefhttpsgithubcomyangdongau20190717LardelliRNASeqLarvaetree91568d262ed39c00e75ce7521f3fb53d475b0ec1targetblank91568d2a" class="panel-collapse collapse">
+<div id="strongRepositoryversionstrongahrefhttpsgithubcomyangdongau20190717LardelliRNASeqLarvaetree4e8adcc6c9c901dcbf2add6a3ae594a6244e1caetargetblank4e8adcca" class="panel-collapse collapse">
 <div class="panel-body">
 <p>
 Great! You are using Git for version control. Tracking code development and connecting the code version to the results is critical for reproducibility. The version displayed above was the version of the Git repository at the time these results were generated. <br><br> Note that you need to be careful to ensure that all relevant files for the analysis have been committed to Git prior to generating the results (you can use <code>wflow_publish</code> or <code>wflow_git_commit</code>). workflowr only checks the R Markdown file, but you know if there are other scripts or data files that it depends on. Below is the status of the Git repository when the results were generated:
@@ -524,8 +524,11 @@ Ignored files:
     Ignored:    output/.DS_Store
 
 Unstaged changes:
+    Modified:   analysis/2_Goseq_analysis_and_IRE_enrichment_test.Rmd
     Modified:   analysis/3_GSEA.Rmd
-    Modified:   output/ireGSEA_resulst.csv
+
+Staged changes:
+    Modified:   analysis/3_GSEA.Rmd
 
 </code></pre>
 <p>
@@ -564,6 +567,40 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/blob/4e8adcc6c9c901dcbf2add6a3ae594a6244e1cae/analysis/3_GSEA.Rmd" target="_blank">4e8adcc</a>
+</td>
+<td>
+yangdongau
+</td>
+<td>
+2020-02-28
+</td>
+<td>
+change wrong work
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/4e8adcc6c9c901dcbf2add6a3ae594a6244e1cae/docs/3_GSEA.html" target="_blank">4e8adcc</a>
+</td>
+<td>
+yangdongau
+</td>
+<td>
+2020-02-28
+</td>
+<td>
+change wrong work
+</td>
+</tr>
 <tr>
 <td>
 Rmd
@@ -809,6 +846,7 @@ topTable &lt;- file.path(here::here(&quot;output&quot;, &quot;topTable.csv&quot;
 </div>
 <div id="gene-ranks" class="section level1">
 <h1>Gene ranks</h1>
+<p>Genes were ranked by -sign(logFC)*log10(PValue).</p>
 <pre class="r"><code>ranks &lt;- topTable %&gt;%
   mutate(stat = -sign(logFC) * log10(PValue)) %&gt;%
   dplyr::arrange(stat) %&gt;%
@@ -816,8 +854,7 @@ topTable &lt;- file.path(here::here(&quot;output&quot;, &quot;topTable.csv&quot;
 </div>
 <div id="databases-used-for-testing" class="section level1">
 <h1>Databases used for testing</h1>
-<div id="hallmark-gene-sets" class="section level2">
-<h2>Hallmark Gene Sets</h2>
+<p>Hallmark and KEGG pathway gene mappings were achieved by <code>msigdbr</code>, and Wiki pathway gene mapping was downloaded by <code>rWikiPathways</code>.</p>
 <pre class="r"><code>hallmark &lt;- msigdbr(&quot;Danio rerio&quot;, category = &quot;H&quot;)  %&gt;% 
   left_join(entrezGenes) %&gt;%
   dplyr::filter(!is.na(ensembl_gene_id)) %&gt;%
@@ -828,9 +865,6 @@ hallmarkByGene &lt;- hallmark %&gt;%
 hallmarkByID &lt;- hallmark %&gt;%
   split(f = .$gs_name) %&gt;%
   lapply(extract2, &quot;ensembl_gene_id&quot;)</code></pre>
-</div>
-<div id="kegg-gene-sets" class="section level2">
-<h2>KEGG gene sets</h2>
 <pre class="r"><code>kegg &lt;- msigdbr(&quot;Danio rerio&quot;, category = &quot;C2&quot;, subcategory = &quot;CP:KEGG&quot;)  %&gt;% 
   left_join(entrezGenes) %&gt;%
   dplyr::filter(!is.na(ensembl_gene_id)) %&gt;%
@@ -841,9 +875,6 @@ keggByGene &lt;- kegg  %&gt;%
 keggByID &lt;- kegg  %&gt;%
   split(f = .$gs_name) %&gt;%
   lapply(extract2, &quot;ensembl_gene_id&quot;)</code></pre>
-</div>
-<div id="wiki-gene-sets" class="section level2">
-<h2>Wiki gene sets</h2>
 <pre class="r"><code>wikidownload &lt;- downloadPathwayArchive(organism = &quot;Danio rerio&quot;, format = &quot;gmt&quot;) 
 wiki &lt;- gmtPathways(here::here(&quot;analysis&quot;, &quot;wikipathways-20200210-gmt-Danio_rerio.gmt&quot;))
 wikilist &lt;- names(wiki) %&gt;%
@@ -862,9 +893,9 @@ wikiByID &lt;- wikilist  %&gt;%
   split(f = .$pathway) %&gt;%
   lapply(extract2, &quot;ensembl_gene_id&quot;)</code></pre>
 </div>
-</div>
 <div id="gene-set-enrichment-analysis-gsea" class="section level1">
 <h1>Gene Set Enrichment analysis (GSEA)</h1>
+<p>Enrichment analysis of each pathway data sets were performed by <code>fgsea</code>, using gene ranks and mappings. A bonferroni-correction cutoff of 0.05 was used to identify signficant results.</p>
 <div id="hallmark-pathways" class="section level2">
 <h2>Hallmark pathways</h2>
 <pre class="r"><code>set.seed(22)
@@ -1397,6 +1428,7 @@ yangdongau
     pathway, ES, NES, size, padj
   ) 
 write_csv(GSEAresult,here::here(&quot;output&quot;,&quot;GSEA_resulst.csv&quot;))</code></pre>
+<p>Use pathview to plot each significant KEGG pathway so as to visualize the changes.</p>
 <pre class="r"><code>setwd(here::here(&quot;keggdiagram&quot;))
 # ECM receptor interaction 
 pv.out &lt;- pathview(gene.data = ranks, 
