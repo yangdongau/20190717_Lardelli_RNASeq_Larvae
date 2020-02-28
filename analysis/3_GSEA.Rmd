@@ -248,14 +248,14 @@ pv.out <- pathview(gene.data = ranks,
          gene.idtype = "ENSEMBL",
          limit = list(gene=5, cpd=1))
 
-# Beta-Alanline metabolism
+# Beta-Alanine metabolism
 pv.out <- pathview(gene.data = ranks, 
          pathway.id = "00410", 
          species = "Danio rerio", 
          gene.idtype = "ENSEMBL",
          limit = list(gene=5, cpd=1))
 
-# Glutathion metabolism
+# Glutathione metabolism
 pv.out <- pathview(gene.data = ranks, 
          pathway.id = "00480", 
          species = "Danio rerio", 

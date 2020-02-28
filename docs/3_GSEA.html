@@ -497,10 +497,10 @@ This reproducible <a href="http://rmarkdown.rstudio.com">R Markdown</a> analysis
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomyangdongau20190717LardelliRNASeqLarvaetreecfc2be0a7b200641c37c23f358ce9dbaa4ec0e82targetblankcfc2be0a"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> <a href="https://github.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/tree/cfc2be0a7b200641c37c23f358ce9dbaa4ec0e82" target="_blank">cfc2be0</a> </a>
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomyangdongau20190717LardelliRNASeqLarvaetree91568d262ed39c00e75ce7521f3fb53d475b0ec1targetblank91568d2a"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> <a href="https://github.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/tree/91568d262ed39c00e75ce7521f3fb53d475b0ec1" target="_blank">91568d2</a> </a>
 </p>
 </div>
-<div id="strongRepositoryversionstrongahrefhttpsgithubcomyangdongau20190717LardelliRNASeqLarvaetreecfc2be0a7b200641c37c23f358ce9dbaa4ec0e82targetblankcfc2be0a" class="panel-collapse collapse">
+<div id="strongRepositoryversionstrongahrefhttpsgithubcomyangdongau20190717LardelliRNASeqLarvaetree91568d262ed39c00e75ce7521f3fb53d475b0ec1targetblank91568d2a" class="panel-collapse collapse">
 <div class="panel-body">
 <p>
 Great! You are using Git for version control. Tracking code development and connecting the code version to the results is critical for reproducibility. The version displayed above was the version of the Git repository at the time these results were generated. <br><br> Note that you need to be careful to ensure that all relevant files for the analysis have been committed to Git prior to generating the results (you can use <code>wflow_publish</code> or <code>wflow_git_commit</code>). workflowr only checks the R Markdown file, but you know if there are other scripts or data files that it depends on. Below is the status of the Git repository when the results were generated:
@@ -522,12 +522,6 @@ Ignored files:
     Ignored:    data/2_alignedData/.DS_Store
     Ignored:    files/
     Ignored:    output/.DS_Store
-
-Untracked files:
-    Untracked:  dre00010.pathview.png
-    Untracked:  dre00010.png
-    Untracked:  dre00010.xml
-    Untracked:  keggdiagram/
 
 Unstaged changes:
     Modified:   analysis/3_GSEA.Rmd
@@ -570,6 +564,40 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/blob/91568d262ed39c00e75ce7521f3fb53d475b0ec1/analysis/3_GSEA.Rmd" target="_blank">91568d2</a>
+</td>
+<td>
+yangdongau
+</td>
+<td>
+2020-02-28
+</td>
+<td>
+Set KEGG diagram directory clean up the folder
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/91568d262ed39c00e75ce7521f3fb53d475b0ec1/docs/3_GSEA.html" target="_blank">91568d2</a>
+</td>
+<td>
+yangdongau
+</td>
+<td>
+2020-02-28
+</td>
+<td>
+Set KEGG diagram directory clean up the folder
+</td>
+</tr>
 <tr>
 <td>
 Rmd
@@ -1384,14 +1412,14 @@ pv.out &lt;- pathview(gene.data = ranks,
          gene.idtype = &quot;ENSEMBL&quot;,
          limit = list(gene=5, cpd=1))</code></pre>
 <pre><code>[1] &quot;Note: 1192 of 19396 unique input IDs unmapped.&quot;</code></pre>
-<pre class="r"><code># Beta-Alanline metabolism
+<pre class="r"><code># Beta-Alanine metabolism
 pv.out &lt;- pathview(gene.data = ranks, 
          pathway.id = &quot;00410&quot;, 
          species = &quot;Danio rerio&quot;, 
          gene.idtype = &quot;ENSEMBL&quot;,
          limit = list(gene=5, cpd=1))</code></pre>
 <pre><code>[1] &quot;Note: 1192 of 19396 unique input IDs unmapped.&quot;</code></pre>
-<pre class="r"><code># Glutathion metabolism
+<pre class="r"><code># Glutathione metabolism
 pv.out &lt;- pathview(gene.data = ranks, 
          pathway.id = &quot;00480&quot;, 
          species = &quot;Danio rerio&quot;, 
