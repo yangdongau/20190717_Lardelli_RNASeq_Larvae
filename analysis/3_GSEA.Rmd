@@ -233,7 +233,11 @@ GSEAresult <- bind_rows(
   ) 
 write_csv(GSEAresult,here::here("output","GSEA_resulst.csv"))
 ```
+<<<<<<< HEAD
 Use `pathview` to plot each significant KEGG pathway so as to visualize the changes.
+=======
+Use pathview to plot each significant KEGG pathway so as to visualize the changes.
+>>>>>>> 8f915944c99890f736385d0ea0415d120d3aa8c3
 
 ```{r plot keggdiagram}
 setwd(here::here("keggdiagram"))
