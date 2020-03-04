@@ -103,7 +103,8 @@ wikilist <- names(wiki) %>%
   mutate(entrez_gene = as.numeric(entrez_gene)) %>%
   left_join(entrezGenes) %>%
   dplyr::filter(!is.na(ensembl_gene_id)) %>%
-  distinct(pathway, ensembl_gene_id, .keep_all = TRUE)
+  distinct(pathway, ensembl_gene_id, .keep_all = TRUE) %>%
+  mutate(pathway = str_remove_all(pathway, "%.+"))
 wikiByGene <- wikilist  %>%
   split(f = .$ensembl_gene_id) %>%
   lapply(extract2, "pathway")
@@ -143,7 +144,7 @@ fgseaHallmarkTop %>%
 ```
 
 
-```{r fig.align = "center"}
+```{r fig.align = "center", fig.width=12}
 # Make a table plot of significant Hallmark pathways
 if (interactive()) grid::grid.newpage()
 plotGseaTable(
@@ -177,7 +178,7 @@ fgseaKEGGTop %>%
   )
 ```
 
-```{r fig.align = "center"}
+```{r fig.align = "center", fig.width=10}
 # Make a table plot of significant KEGG pathways
 if (interactive()) grid::grid.newpage()
 plotGseaTable(
@@ -235,75 +236,51 @@ write_csv(GSEAresult,here::here("output","GSEA_resulst.csv"))
 ```
 Use `pathview` to plot each significant KEGG pathway so as to visualize the changes.
 
-```{r plot keggdiagram}
-setwd(here::here("keggdiagram"))
-# ECM receptor interaction 
-pv.out <- pathview(gene.data = ranks, 
-         pathway.id = "04512", 
-         species = "Danio rerio", 
-         gene.idtype = "ENSEMBL",
-         limit = list(gene=5, cpd=1))
-
-# Fatty acid metabolism
-pv.out <- pathview(gene.data = ranks, 
-         pathway.id = "01212", 
-         species = "Danio rerio", 
-         gene.idtype = "ENSEMBL",
-         limit = list(gene=5, cpd=1))
-
-# Beta-Alanine metabolism
-pv.out <- pathview(gene.data = ranks, 
-         pathway.id = "00410", 
-         species = "Danio rerio", 
-         gene.idtype = "ENSEMBL",
-         limit = list(gene=5, cpd=1))
-
-# Glutathione metabolism
-pv.out <- pathview(gene.data = ranks, 
-         pathway.id = "00480", 
-         species = "Danio rerio", 
-         gene.idtype = "ENSEMBL",
-         limit = list(gene=5, cpd=1))
-
-# Cell cycle
-pv.out <- pathview(gene.data = ranks, 
-         pathway.id = "04110", 
-         species = "Danio rerio", 
-         gene.idtype = "ENSEMBL",
-         limit = list(gene=5, cpd=1))
-
-# DNA replication
-pv.out <- pathview(gene.data = ranks, 
-         pathway.id = "03030", 
-         species = "Danio rerio", 
-         gene.idtype = "ENSEMBL",
-         limit = list(gene=5, cpd=1))
-
-# Pyrimidine metabolism
-pv.out <- pathview(gene.data = ranks, 
-         pathway.id = "00240", 
-         species = "Danio rerio", 
-         gene.idtype = "ENSEMBL",
-         limit = list(gene=5, cpd=1))
-
-# Butanoate metabolism
-pv.out <- pathview(gene.data = ranks, 
-         pathway.id = "00650", 
-         species = "Danio rerio", 
-         gene.idtype = "ENSEMBL",
-         limit = list(gene=5, cpd=1))
-
-# Focal adhesion
-pv.out <- pathview(gene.data = ranks, 
-         pathway.id = "04510", 
-         species = "Danio rerio", 
-         gene.idtype = "ENSEMBL",
-         limit = list(gene=5, cpd=1))
-
-# Oxidative phosphorylation
-pv.out <- pathview(gene.data = ranks, 
-         pathway.id = "00190", 
-         species = "Danio rerio", 
-         gene.idtype = "ENSEMBL",
-         limit = list(gene=5, cpd=1))
+```{r plot_keggdiagram}
+keggDir <- here::here("keggdiagram")
+keggPaths <- list.files(keggDir, pattern = "xml") %>% 
+  str_replace_all(pattern = "dre([0-9]+).xml", "\\1")
 ```
+
+
+```{r pv.out, results='hide'}
+pv.out <- pathview(
+  gene.data = ranks,
+  pathway.id = keggPaths,
+  species = "Danio rerio",
+  kegg.dir = keggDir,
+  gene.idtype = "ENSEMBL",
+  limit = list(gene = 5, cpd = 1)
+)
+```
+
+
+```{r movePngFiles, results='hide'}
+keggPng <- list.files(pattern = "dre.+pathview.png", full.names = TRUE)
+file.rename(
+  keggPng,
+  here::here("docs", "figure", "3_GSEA.Rmd", basename(keggPng))
+)
+```
+
+All generated KEGG pathview files are available using the following links:
+
+```{r pngUrl}
+pngUrl <- tibble(
+  path = here::here("docs", "figure", "3_GSEA.Rmd", basename(keggPng)),
+  id = str_extract(path, "dre[0-9]+")
+) %>%
+  split(f = .$id) %>%
+  vapply(function(x){
+    paste0("![](", x$path, ")\n\n\n")
+  },
+  character(1))
+```
+
+
+```{r, echo=FALSE, results='asis'}
+cat(pngUrl)
+```
+
+
+

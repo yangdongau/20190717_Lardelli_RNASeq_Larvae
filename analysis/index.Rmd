@@ -21,12 +21,12 @@ knitr::opts_chunk$set(
 library(tidyverse)
 ```
 
-This website contains the analysis of RNAseq data from an experiment comparing zebrafish larvae from two genotypes.
+This website contains the analysis of RNAseq data from an experiment comparing 7 dpf zebrafish larvae from two genotypes.
 One genotype represented wild-type larvae, whilst the other genotype was a heterozygous mutation for the gene *psen1*, in which 6 nucleotides were deleted, to remove the two amino acids Q96 and K97.
 This mutation is generally referred to as *psen1^Q96K97^*.
 
 Results from all steps can be found at:
 
 1. [DE Gene Analysis](1_DE_gene_analysis.html)
-2. [Goseq Analysis & IRE enrichment test](2_Goseq_analysis_&_IRE_enrichment_test.Rmd)
+2. [Goseq Analysis & IRE enrichment test](2_Goseq_analysis_and_IRE_enrichment_test.html)
 3. [GSEA](3_GSEA.html)

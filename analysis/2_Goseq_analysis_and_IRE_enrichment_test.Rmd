@@ -116,7 +116,8 @@ wikilist <- names(wiki) %>%
   mutate(entrez_gene = as.numeric(entrez_gene)) %>%
   left_join(entrezGenes) %>%
   dplyr::filter(!is.na(ensembl_gene_id)) %>%
-  distinct(pathway, ensembl_gene_id, .keep_all = TRUE)
+  distinct(pathway, ensembl_gene_id, .keep_all = TRUE) %>%
+  mutate(pathway = str_remove_all(pathway, "%.+"))
 wikiByGene <- wikilist  %>%
   split(f = .$ensembl_gene_id) %>%
   lapply(extract2, "pathway")
@@ -156,7 +157,7 @@ plotPWF(pwf)
 
 ## Goseq pathway analysis
 
-Use `goseq` to perform pathway enrichment analysis and print out the top five significantly-changed pathways
+Use `goseq` to perform pathway enrichment analysis and print out the top 5 significantly-changed pathways
 
 ### Hallmark Gene Sets
 
@@ -243,6 +244,8 @@ goGoseq <- pwf %>%
   as_tibble %>%
   mutate(FDR = p.adjust(over_represented_pvalue, method = "fdr"))
 ```
+
+Enriched GO list is filter by a FDR cutoff of 0.05.
 
 ```{r enriched GO list}
 goGoseq %>%
@@ -380,7 +383,7 @@ ggraph(tidy, layout = "fr") +
         show.legend = FALSE
     ) +
     geom_node_label(
-        aes(label = goTerms),
+        aes(label = gene_name),
         repel = TRUE,
         size = 3,
         alpha = 0.7,
@@ -392,8 +395,14 @@ ggraph(tidy, layout = "fr") +
 
 # IRE enrichment analysis
 
+## IRE Goseq analysis
+
 ```{r load IRE information}
-ireGR <- list.files(path = here::here("analysis"),pattern = "gff.gz") %>%
+ireGR <- list.files(
+  path = here::here("analysis"),
+  pattern = "gff.gz",
+  full.names = TRUE
+  ) %>%
     sapply(rtracklayer::import.gff, simplify = FALSE) %>%
     lapply(function(x){
         tibble(
