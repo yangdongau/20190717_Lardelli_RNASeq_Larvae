@@ -156,9 +156,10 @@ plotPWF(pwf)
 
 ## Goseq pathway analysis
 
+Use `goseq` to perform pathway enrichment analysis and print out the top five significantly-changed pathways
+
 ### Hallmark Gene Sets
 
-Mappings from gene to pathway are also required, instead of the previous pathway to gene.
 
 ```{r hallmark analysis}
 hallmarkGoseq <- pwf %>%
@@ -271,6 +272,8 @@ goGoseqTop <- goGoseq %>%
 
 ## GO plot
 
+Use the links between DE genes and signficant GO terms to plot the GO networks.
+
 ```{r GO plot}
 ## Get significant GO terms
 sigGo <- goGoseq %>%
@@ -377,7 +380,7 @@ ggraph(tidy, layout = "fr") +
         show.legend = FALSE
     ) +
     geom_node_label(
-        aes(label = gene_name),
+        aes(label = goTerms),
         repel = TRUE,
         size = 3,
         alpha = 0.7,
