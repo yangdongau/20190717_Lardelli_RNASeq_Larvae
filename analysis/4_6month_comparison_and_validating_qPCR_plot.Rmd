@@ -1,0 +1,57 @@
+---
+title: "4_6month comparison and validating qPCR plot"
+author: "Yang & Steve"
+date: "24/02/2020"
+output: 
+  html_document: 
+    toc: yes
+    toc_float: yes
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+### Setup
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+```{r packages}
+library(limma)
+library(edgeR)
+library(tidyverse)
+library(magrittr)
+library(pander)
+library(ggrepel)
+library(scales)
+library(plyr)
+library(ggraph)
+library(tidygraph)
+library(readxl)
+theme_set(theme_bw())
+panderOptions("big.mark", ",")
+panderOptions("table.split.table", Inf)
+panderOptions("table.style", "rmarkdown")
+if (interactive()) setwd(here::here("analysis"))
+```
+
+# Data load
+
+```{r loaddgeList}
+dgeList <- read_rds(here::here("data","dgeList.rds"))
+entrezGenes <- dgeList$genes %>%
+  dplyr::filter(!is.na(entrez_gene)) %>%
+  unnest(entrez_gene) %>%
+  dplyr::rename(entrez_gene = entrez_gene)
+topTable <- file.path(here::here("output", "topTable.csv")) %>% 
+  read_csv()
+sixmonthtopTable <- read_excel(here::here("files", "6monthDEgenes.xlsx"))
+```
+
+# Find common DE genes
+```{r common DE genes}
+commonDE <- topTable %>%
+  dplyr::filter(FDR < 0.01) %>%
+  dplyr::filter(ensembl_gene_id %in% sixmonthtopTable$`Ensembl ID`)
+
+```
