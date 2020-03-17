@@ -253,8 +253,8 @@ pv.out <- pathview(
   species = "Danio rerio",
   kegg.dir = keggDir,
   gene.idtype = "ENSEMBL",
-  limit = list(gene = 0.8, cpd = 0.5),
-  bins = list(gene = 20, cpd = 20)
+  limit = list(gene = 0.8, cpd = 0.8),
+  bins = list(gene = 16, cpd = 16)
 )
 ```
 
