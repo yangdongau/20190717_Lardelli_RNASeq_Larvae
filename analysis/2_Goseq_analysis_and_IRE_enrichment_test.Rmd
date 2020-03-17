@@ -140,7 +140,6 @@ pwf <- topTable %>%
       DEgenes = structure(
         as.integer(DE), names = ensembl_gene_id
       ), 
-      genome = "danRer10", 
       id = "ensGene", 
       # bias.data = log(nGC),
       bias.data = aveLength,

@@ -245,12 +245,16 @@ keggPaths <- list.files(keggDir, pattern = "xml") %>%
 
 ```{r pv.out, results='hide'}
 pv.out <- pathview(
-  gene.data = ranks,
-  pathway.id = keggPaths,
+  gene.data = topTable %>%
+    dplyr::select(c("ensembl_gene_id", "logFC")) %>%
+    as.data.frame() %>%
+    column_to_rownames("ensembl_gene_id"),
+  pathway.id = "dre00190",
   species = "Danio rerio",
   kegg.dir = keggDir,
   gene.idtype = "ENSEMBL",
-  limit = list(gene = 5, cpd = 1)
+  limit = list(gene = 0.5, cpd = 0.5),
+  bins = list(gene = 20, cpd = 20)
 )
 ```
 
