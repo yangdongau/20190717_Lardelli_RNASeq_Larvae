@@ -249,11 +249,11 @@ pv.out <- pathview(
     dplyr::select(c("ensembl_gene_id", "logFC")) %>%
     as.data.frame() %>%
     column_to_rownames("ensembl_gene_id"),
-  pathway.id = "dre00190",
+  pathway.id = keggPaths,
   species = "Danio rerio",
   kegg.dir = keggDir,
   gene.idtype = "ENSEMBL",
-  limit = list(gene = 0.5, cpd = 0.5),
+  limit = list(gene = 0.8, cpd = 0.5),
   bins = list(gene = 20, cpd = 20)
 )
 ```
