@@ -53,5 +53,110 @@ sixmonthtopTable <- read_excel(here::here("files", "6monthDEgenes.xlsx"))
 commonDE <- topTable %>%
   dplyr::filter(FDR < 0.01) %>%
   dplyr::filter(ensembl_gene_id %in% sixmonthtopTable$`Ensembl ID`)
+```
 
+# Plot expression of DE genes for validating qPCR
+
+```{r plotrpl13, echo=FALSE, fig.cap = "Expression of *rpl13* across all samples."}
+dgeList %>%
+	cpm(log = TRUE) %>%
+	.["ENSDARG00000099380",] %>%
+	as.matrix() %>%
+	set_colnames("logCPM") %>%
+	cbind(dgeList$samples[rownames(.),]) %>%
+	ggplot(aes(pair, logCPM, fill = Genotype)) +
+	geom_bar(stat = "identity") +
+  facet_wrap(~Genotype, scales = "free_x") +
+  guides(fill = FALSE) 
+```
+
+```{r plotCABZ01034698, echo=FALSE, fig.cap = "Expression of *fthl31* across all samples."}
+dgeList %>%
+	cpm(log = TRUE) %>%
+	.["ENSDARG00000099511",] %>%
+	as.matrix() %>%
+	set_colnames("logCPM") %>%
+	cbind(dgeList$samples[rownames(.),]) %>%
+	ggplot(aes(pair, logCPM, fill = Genotype)) +
+	geom_bar(stat = "identity") +
+  facet_wrap(~Genotype, scales = "free_x") +
+  guides(fill = FALSE) 
+```
+
+```{r plotmdh1ab, echo=FALSE, fig.cap = "Expression of *mdh1ab* across all samples."}
+dgeList %>%
+	cpm(log = TRUE) %>%
+	.["ENSDARG00000103849",] %>%
+	as.matrix() %>%
+	set_colnames("logCPM") %>%
+	cbind(dgeList$samples[rownames(.),]) %>%
+	ggplot(aes(pair, logCPM, fill = Genotype)) +
+	geom_bar(stat = "identity") +
+  facet_wrap(~Genotype, scales = "free_x") +
+  guides(fill = FALSE) 
+```
+
+```{r plotsi:ch211-11p18.6, echo=FALSE, fig.cap = "Expression of *si:ch211-11p18.6* across all samples."}
+dgeList %>%
+	cpm(log = TRUE) %>%
+	.["ENSDARG00000077068",] %>%
+	as.matrix() %>%
+	set_colnames("logCPM") %>%
+	cbind(dgeList$samples[rownames(.),]) %>%
+	ggplot(aes(pair, logCPM, fill = Genotype)) +
+	geom_bar(stat = "identity") +
+  facet_wrap(~Genotype, scales = "free_x") +
+  guides(fill = FALSE) 
+```
+
+```{r plotsi:ch211-213a13.2, echo=FALSE, fig.cap = "Expression of *si:ch211-11p18.6* across all samples."}
+dgeList %>%
+	cpm(log = TRUE) %>%
+	.["ENSDARG00000093024",] %>%
+	as.matrix() %>%
+	set_colnames("logCPM") %>%
+	cbind(dgeList$samples[rownames(.),]) %>%
+	ggplot(aes(pair, logCPM, fill = Genotype)) +
+	geom_bar(stat = "identity") +
+  facet_wrap(~Genotype, scales = "free_x") +
+  guides(fill = FALSE) 
+```
+
+```{r plottfa, echo=FALSE, fig.cap = "Expression of *tfa* across all samples."}
+dgeList %>%
+	cpm(log = TRUE) %>%
+	.["ENSDARG00000016771",] %>%
+	as.matrix() %>%
+	set_colnames("logCPM") %>%
+	cbind(dgeList$samples[rownames(.),]) %>%
+	ggplot(aes(pair, logCPM, fill = Genotype)) +
+	geom_bar(stat = "identity") +
+  facet_wrap(~Genotype, scales = "free_x") +
+  guides(fill = FALSE) 
+```
+
+```{r plottfr1b, echo=FALSE, fig.cap = "Expression of *tfr1b* across all samples."}
+dgeList %>%
+	cpm(log = TRUE) %>%
+	.["ENSDARG00000077372",] %>%
+	as.matrix() %>%
+	set_colnames("logCPM") %>%
+	cbind(dgeList$samples[rownames(.),]) %>%
+	ggplot(aes(pair, logCPM, fill = Genotype)) +
+	geom_bar(stat = "identity") +
+  facet_wrap(~Genotype, scales = "free_x") +
+  guides(fill = FALSE) 
+```
+
+```{r plotfthl31, echo=FALSE, fig.cap = "Expression of *fthl31* across all samples."}
+dgeList %>%
+	cpm(log = TRUE) %>%
+	.["ENSDARG00000094210",] %>%
+	as.matrix() %>%
+	set_colnames("logCPM") %>%
+	cbind(dgeList$samples[rownames(.),]) %>%
+	ggplot(aes(pair, logCPM, fill = Genotype)) +
+	geom_bar(stat = "identity") +
+  facet_wrap(~Genotype, scales = "free_x") +
+  guides(fill = FALSE) 
 ```
