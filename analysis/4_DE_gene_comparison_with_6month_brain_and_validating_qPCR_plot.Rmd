@@ -1,5 +1,5 @@
 ---
-title: "4_6month comparison and validating qPCR plot"
+title: "4_DE gene comparison with 6month brain and validating qPCR plot"
 author: "Yang & Steve"
 date: "24/02/2020"
 output: 
@@ -52,10 +52,17 @@ sixmonthtopTable <- read_excel(here::here("files", "6monthDEgenes.xlsx"))
 ```{r common DE genes}
 commonDE <- topTable %>%
   dplyr::filter(FDR < 0.01) %>%
-  dplyr::filter(ensembl_gene_id %in% sixmonthtopTable$`Ensembl ID`)
+  dplyr::filter(ensembl_gene_id %in% sixmonthtopTable$`Ensembl ID`) %>%
+  dplyr::select(ensembl_gene_id, external_gene_name) %>%
+    pander(
+      caption = "Common DE genes in 7 dpf larvae and 6 month brain.",
+      justify = "lr"
+  )
 ```
 
 # Plot expression of DE genes for validating qPCR
+
+Rpl13 gene was used as a house-keeping genes. The expression level is similar across all samples.
 
 ```{r plotrpl13, echo=FALSE, fig.cap = "Expression of *rpl13* across all samples."}
 dgeList %>%
