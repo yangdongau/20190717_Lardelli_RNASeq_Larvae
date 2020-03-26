@@ -10,9 +10,10 @@
 <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
 
+<meta name="author" content="Yang &amp; Steve" />
 
 
-<title>Home</title>
+<title>4_DE gene comparison with 6month brain and validating qPCR plot</title>
 
 <script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -20,6 +21,9 @@
 <script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
 <script src="site_libs/navigation-1.1/tabsets.js"></script>
 <script src="site_libs/navigation-1.1/codefolding.js"></script>
 <link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
@@ -252,6 +256,63 @@ $(document).ready(function () {
 
 
 
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
 
 </head>
 
@@ -259,6 +320,16 @@ $(document).ready(function () {
 
 
 <div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row-fluid">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
 
 
 
@@ -308,7 +379,9 @@ div.section {
 
 
 
-<h1 class="title toc-ignore">Home</h1>
+<h1 class="title toc-ignore">4_DE gene comparison with 6month brain and validating qPCR plot</h1>
+<h4 class="author">Yang &amp; Steve</h4>
+<h4 class="date">24/02/2020</h4>
 
 </div>
 
@@ -357,7 +430,7 @@ This reproducible <a href="http://rmarkdown.rstudio.com">R Markdown</a> analysis
 </div>
 <div id="strongRMarkdownfilestronguncommittedchanges" class="panel-collapse collapse">
 <div class="panel-body">
-<p>The R Markdown file has staged changes. To know which version of the R Markdown file created these results, you’ll want to first commit it to the Git repo. If you’re still working on the analysis, you can ignore this warning. When you’re finished, you can run <code>wflow_publish</code> to commit the R Markdown file and build the HTML.</p>
+<p>The R Markdown file has unstaged changes. To know which version of the R Markdown file created these results, you’ll want to first commit it to the Git repo. If you’re still working on the analysis, you can ignore this warning. When you’re finished, you can run <code>wflow_publish</code> to commit the R Markdown file and build the HTML.</p>
 </div>
 </div>
 </div>
@@ -450,7 +523,7 @@ Ignored files:
     Ignored:    keggdiagram/.DS_Store
     Ignored:    output/.DS_Store
 
-Staged changes:
+Unstaged changes:
     Modified:   analysis/4_DE_gene_comparison_with_6month_brain_and_validating_qPCR_plot.Rmd
     Modified:   analysis/index.Rmd
 
@@ -496,7 +569,7 @@ Message
 Rmd
 </td>
 <td>
-<a href="https://github.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/blob/6d48a07035cccfa3fbd78cec03d906e84a379e48/analysis/index.Rmd" target="_blank">6d48a07</a>
+<a href="https://github.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/blob/6d48a07035cccfa3fbd78cec03d906e84a379e48/analysis/4_DE_gene_comparison_with_6month_brain_and_validating_qPCR_plot.Rmd" target="_blank">6d48a07</a>
 </td>
 <td>
 yangdongau
@@ -508,312 +581,6 @@ yangdongau
 Index DE gene comparison analysis
 </td>
 </tr>
-<tr>
-<td>
-html
-</td>
-<td>
-<a href="https://rawcdn.githack.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/7d1a0d3bb8597a307b8de160373d78e264f5e65d/docs/index.html" target="_blank">7d1a0d3</a>
-</td>
-<td>
-yangdongau
-</td>
-<td>
-2020-03-04
-</td>
-<td>
-test
-</td>
-</tr>
-<tr>
-<td>
-Rmd
-</td>
-<td>
-<a href="https://github.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/blob/fa3b6031ed7cbb162fd0b5e51350c02b13558953/analysis/index.Rmd" target="_blank">fa3b603</a>
-</td>
-<td>
-yangdongau
-</td>
-<td>
-2020-03-04
-</td>
-<td>
-1.Reorganize the files
-</td>
-</tr>
-<tr>
-<td>
-html
-</td>
-<td>
-<a href="https://rawcdn.githack.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/fa3b6031ed7cbb162fd0b5e51350c02b13558953/docs/index.html" target="_blank">fa3b603</a>
-</td>
-<td>
-yangdongau
-</td>
-<td>
-2020-03-04
-</td>
-<td>
-1.Reorganize the files
-</td>
-</tr>
-<tr>
-<td>
-html
-</td>
-<td>
-<a href="https://rawcdn.githack.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/7e50b3be970ec354c69dc73d5a6fc4fad42773ed/docs/index.html" target="_blank">7e50b3b</a>
-</td>
-<td>
-yangdongau
-</td>
-<td>
-2020-02-28
-</td>
-<td>
-fix
-</td>
-</tr>
-<tr>
-<td>
-html
-</td>
-<td>
-<a href="https://rawcdn.githack.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/83988690d22a039ab13e4f76b01b4dcbd68aad98/docs/index.html" target="_blank">8398869</a>
-</td>
-<td>
-yangdongau
-</td>
-<td>
-2020-02-28
-</td>
-<td>
-Merge branch ‘master’ of github.com:yangdongau/20190717_Lardelli_RNASeq_Larvae
-</td>
-</tr>
-<tr>
-<td>
-html
-</td>
-<td>
-<a href="https://rawcdn.githack.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/a19b0d358940eec4c5b7413b67c70cd32b24af70/docs/index.html" target="_blank">a19b0d3</a>
-</td>
-<td>
-yangdongau
-</td>
-<td>
-2020-02-28
-</td>
-<td>
-Change texts
-</td>
-</tr>
-<tr>
-<td>
-html
-</td>
-<td>
-<a href="https://rawcdn.githack.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/3c8b6e1b80e7f650f61d3305a2e97901a461779f/docs/index.html" target="_blank">3c8b6e1</a>
-</td>
-<td>
-yangdongau
-</td>
-<td>
-2020-02-28
-</td>
-<td>
-Add in annotations.
-</td>
-</tr>
-<tr>
-<td>
-html
-</td>
-<td>
-<a href="https://rawcdn.githack.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/8f915944c99890f736385d0ea0415d120d3aa8c3/docs/index.html" target="_blank">8f91594</a>
-</td>
-<td>
-yangdongau
-</td>
-<td>
-2020-02-28
-</td>
-<td>
-Add in annotations.
-</td>
-</tr>
-<tr>
-<td>
-html
-</td>
-<td>
-<a href="https://rawcdn.githack.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/4e8adcc6c9c901dcbf2add6a3ae594a6244e1cae/docs/index.html" target="_blank">4e8adcc</a>
-</td>
-<td>
-yangdongau
-</td>
-<td>
-2020-02-28
-</td>
-<td>
-change wrong work
-</td>
-</tr>
-<tr>
-<td>
-html
-</td>
-<td>
-<a href="https://rawcdn.githack.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/91568d262ed39c00e75ce7521f3fb53d475b0ec1/docs/index.html" target="_blank">91568d2</a>
-</td>
-<td>
-yangdongau
-</td>
-<td>
-2020-02-28
-</td>
-<td>
-Set KEGG diagram directory clean up the folder
-</td>
-</tr>
-<tr>
-<td>
-html
-</td>
-<td>
-<a href="https://rawcdn.githack.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/0ce8f79e106812abb972cef571f87585fca95092/docs/index.html" target="_blank">0ce8f79</a>
-</td>
-<td>
-yangdongau
-</td>
-<td>
-2020-02-27
-</td>
-<td>
-clean up library packages
-</td>
-</tr>
-<tr>
-<td>
-Rmd
-</td>
-<td>
-<a href="https://github.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/blob/3b63601b195fcccf0abdc025d5eef774424d23b0/analysis/index.Rmd" target="_blank">3b63601</a>
-</td>
-<td>
-yangdongau
-</td>
-<td>
-2020-02-27
-</td>
-<td>
-index 3_GSEA.rmd
-</td>
-</tr>
-<tr>
-<td>
-html
-</td>
-<td>
-<a href="https://rawcdn.githack.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/3b63601b195fcccf0abdc025d5eef774424d23b0/docs/index.html" target="_blank">3b63601</a>
-</td>
-<td>
-yangdongau
-</td>
-<td>
-2020-02-27
-</td>
-<td>
-index 3_GSEA.rmd
-</td>
-</tr>
-<tr>
-<td>
-Rmd
-</td>
-<td>
-<a href="https://github.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/blob/6c617058e01a37f9666e2061b9c8984b850a50ca/analysis/index.Rmd" target="_blank">6c61705</a>
-</td>
-<td>
-yangdongau
-</td>
-<td>
-2020-02-27
-</td>
-<td>
-Compiled DE Gene analysis
-</td>
-</tr>
-<tr>
-<td>
-html
-</td>
-<td>
-<a href="https://rawcdn.githack.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/6c617058e01a37f9666e2061b9c8984b850a50ca/docs/index.html" target="_blank">6c61705</a>
-</td>
-<td>
-yangdongau
-</td>
-<td>
-2020-02-27
-</td>
-<td>
-Compiled DE Gene analysis
-</td>
-</tr>
-<tr>
-<td>
-Rmd
-</td>
-<td>
-<a href="https://github.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/blob/84b88d526fa31dcee8e3c85eb7db8bd964775450/analysis/index.Rmd" target="_blank">84b88d5</a>
-</td>
-<td>
-yangdongau
-</td>
-<td>
-2020-02-27
-</td>
-<td>
-Initialised workflowr
-</td>
-</tr>
-<tr>
-<td>
-html
-</td>
-<td>
-<a href="https://rawcdn.githack.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/84b88d526fa31dcee8e3c85eb7db8bd964775450/docs/index.html" target="_blank">84b88d5</a>
-</td>
-<td>
-yangdongau
-</td>
-<td>
-2020-02-27
-</td>
-<td>
-Initialised workflowr
-</td>
-</tr>
-<tr>
-<td>
-Rmd
-</td>
-<td>
-<a href="https://github.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/blob/838c160ba90d818bfa44f282f010f6c790ffbd5b/analysis/index.Rmd" target="_blank">838c160</a>
-</td>
-<td>
-yangdongau
-</td>
-<td>
-2020-02-27
-</td>
-<td>
-Start workflowr project.
-</td>
-</tr>
 </tbody>
 </table>
 </div>
@@ -821,21 +588,98 @@ Start workflowr project.
 </div>
 </div>
 </div>
-<pre class="r"><code>knitr::opts_chunk$set(
-  autodep = FALSE,
-  echo = TRUE,
-  warning = FALSE,
-  message = FALSE
-)</code></pre>
-<pre class="r"><code>library(tidyverse)</code></pre>
-<p>This website contains the analysis of RNAseq data from an experiment comparing 7 dpf zebrafish larvae from two genotypes. One genotype represented wild-type larvae, whilst the other genotype was a heterozygous mutation for the gene <em>psen1</em>, in which 6 nucleotides were deleted, to remove the two amino acids Q96 and K97. This mutation is generally referred to as <em>psen1<sup>Q96K97</sup></em>.</p>
-<p>Results from all steps can be found at:</p>
-<ol style="list-style-type: decimal">
-<li><a href="1_DE_gene_analysis.html">DE Gene Analysis</a></li>
-<li><a href="2_Goseq_analysis_and_IRE_enrichment_test.html">Goseq Analysis &amp; IRE enrichment test</a></li>
-<li><a href="3_GSEA.html">GSEA</a></li>
-<li><a href="4_DE_gene_comparison_with_6month_brain_and_validating_qPCR_plot.Rmd">DE gene omparison with 6month brain and validating qPCR plot</a></li>
-</ol>
+<div id="setup" class="section level3">
+<h3>Setup</h3>
+<pre class="r"><code>library(limma)
+library(edgeR)
+library(tidyverse)
+library(magrittr)
+library(pander)
+library(ggrepel)
+library(scales)
+library(plyr)
+library(ggraph)
+library(tidygraph)
+library(readxl)
+theme_set(theme_bw())
+panderOptions(&quot;big.mark&quot;, &quot;,&quot;)
+panderOptions(&quot;table.split.table&quot;, Inf)
+panderOptions(&quot;table.style&quot;, &quot;rmarkdown&quot;)
+if (interactive()) setwd(here::here(&quot;analysis&quot;))</code></pre>
+</div>
+<div id="data-load" class="section level1">
+<h1>Data load</h1>
+<pre class="r"><code>dgeList &lt;- read_rds(here::here(&quot;data&quot;,&quot;dgeList.rds&quot;))
+entrezGenes &lt;- dgeList$genes %&gt;%
+  dplyr::filter(!is.na(entrez_gene)) %&gt;%
+  unnest(entrez_gene) %&gt;%
+  dplyr::rename(entrez_gene = entrez_gene)
+topTable &lt;- file.path(here::here(&quot;output&quot;, &quot;topTable.csv&quot;)) %&gt;% 
+  read_csv()
+sixmonthtopTable &lt;- read_excel(here::here(&quot;files&quot;, &quot;6monthDEgenes.xlsx&quot;))</code></pre>
+</div>
+<div id="find-common-de-genes" class="section level1">
+<h1>Find common DE genes</h1>
+<pre class="r"><code>commonDE &lt;- topTable %&gt;%
+  dplyr::filter(FDR &lt; 0.01) %&gt;%
+  dplyr::filter(ensembl_gene_id %in% sixmonthtopTable$`Ensembl ID`) %&gt;%
+  dplyr::select(ensembl_gene_id, external_gene_name) %&gt;%
+    pander(
+      caption = &quot;Common DE genes in 7 dpf larvae and 6 month brain.&quot;,
+      justify = &quot;lr&quot;
+  )</code></pre>
+</div>
+<div id="plot-expression-of-de-genes-for-validating-qpcr" class="section level1">
+<h1>Plot expression of DE genes for validating qPCR</h1>
+<p>Rpl13 gene was used as a house-keeping genes. The expression level is similar across all samples.</p>
+<div class="figure" style="text-align: center">
+<img src="figure/4_DE_gene_comparison_with_6month_brain_and_validating_qPCR_plot.Rmd/plotrpl13-1.png" alt="Expression of *rpl13* across all samples." width="672" />
+<p class="caption">
+Expression of <em>rpl13</em> across all samples.
+</p>
+</div>
+<div class="figure" style="text-align: center">
+<img src="figure/4_DE_gene_comparison_with_6month_brain_and_validating_qPCR_plot.Rmd/plotCABZ01034698-1.png" alt="Expression of *CABZ01034698* across all samples." width="672" />
+<p class="caption">
+Expression of <em>CABZ01034698</em> across all samples.
+</p>
+</div>
+<div class="figure" style="text-align: center">
+<img src="figure/4_DE_gene_comparison_with_6month_brain_and_validating_qPCR_plot.Rmd/plotmdh1ab-1.png" alt="Expression of *mdh1ab* across all samples." width="672" />
+<p class="caption">
+Expression of <em>mdh1ab</em> across all samples.
+</p>
+</div>
+<div class="figure" style="text-align: center">
+<img src="figure/4_DE_gene_comparison_with_6month_brain_and_validating_qPCR_plot.Rmd/plotsi:ch211-11p18.6-1.png" alt="Expression of *si:ch211-11p18.6* across all samples." width="672" />
+<p class="caption">
+Expression of <em>si:ch211-11p18.6</em> across all samples.
+</p>
+</div>
+<div class="figure" style="text-align: center">
+<img src="figure/4_DE_gene_comparison_with_6month_brain_and_validating_qPCR_plot.Rmd/plotsi:ch211-213a13.2-1.png" alt="Expression of *si:ch211-213a13.2* across all samples." width="672" />
+<p class="caption">
+Expression of <em>si:ch211-213a13.2</em> across all samples.
+</p>
+</div>
+<div class="figure" style="text-align: center">
+<img src="figure/4_DE_gene_comparison_with_6month_brain_and_validating_qPCR_plot.Rmd/plottfa-1.png" alt="Expression of *tfa* across all samples." width="672" />
+<p class="caption">
+Expression of <em>tfa</em> across all samples.
+</p>
+</div>
+<div class="figure" style="text-align: center">
+<img src="figure/4_DE_gene_comparison_with_6month_brain_and_validating_qPCR_plot.Rmd/plottfr1b-1.png" alt="Expression of *tfr1b* across all samples." width="672" />
+<p class="caption">
+Expression of <em>tfr1b</em> across all samples.
+</p>
+</div>
+<div class="figure" style="text-align: center">
+<img src="figure/4_DE_gene_comparison_with_6month_brain_and_validating_qPCR_plot.Rmd/plotfthl31-1.png" alt="Expression of *fthl31* across all samples." width="672" />
+<p class="caption">
+Expression of <em>fthl31</em> across all samples.
+</p>
+</div>
 <br>
 <p>
 <button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
@@ -857,83 +701,104 @@ Start workflowr project.
  date     2020-03-26                  
 
 ─ Packages ──────────────────────────────────────────────────────────────
- package     * version date       lib source        
- assertthat    0.2.1   2019-03-21 [1] CRAN (R 3.6.0)
- backports     1.1.4   2019-04-10 [1] CRAN (R 3.6.0)
- broom         0.5.2   2019-04-07 [1] CRAN (R 3.6.0)
- callr         3.3.1   2019-07-18 [1] CRAN (R 3.6.0)
- cellranger    1.1.0   2016-07-27 [1] CRAN (R 3.6.0)
- cli           1.1.0   2019-03-19 [1] CRAN (R 3.6.0)
- colorspace    1.4-1   2019-03-18 [1] CRAN (R 3.6.0)
- crayon        1.3.4   2017-09-16 [1] CRAN (R 3.6.0)
- desc          1.2.0   2018-05-01 [1] CRAN (R 3.6.0)
- devtools      2.2.2   2020-02-17 [1] CRAN (R 3.6.0)
- digest        0.6.20  2019-07-04 [1] CRAN (R 3.6.0)
- dplyr       * 0.8.3   2019-07-04 [1] CRAN (R 3.6.0)
- ellipsis      0.3.0   2019-09-20 [1] CRAN (R 3.6.0)
- evaluate      0.14    2019-05-28 [1] CRAN (R 3.6.0)
- forcats     * 0.4.0   2019-02-17 [1] CRAN (R 3.6.0)
- fs            1.3.1   2019-05-06 [1] CRAN (R 3.6.0)
- generics      0.0.2   2018-11-29 [1] CRAN (R 3.6.0)
- ggplot2     * 3.2.1   2019-08-10 [1] CRAN (R 3.6.0)
- git2r         0.26.1  2019-06-29 [1] CRAN (R 3.6.0)
- glue          1.3.1   2019-03-12 [1] CRAN (R 3.6.0)
- gtable        0.3.0   2019-03-25 [1] CRAN (R 3.6.0)
- haven         2.1.1   2019-07-04 [1] CRAN (R 3.6.0)
- hms           0.5.1   2019-08-23 [1] CRAN (R 3.6.0)
- htmltools     0.3.6   2017-04-28 [1] CRAN (R 3.6.0)
- httpuv        1.5.1   2019-04-05 [1] CRAN (R 3.6.0)
- httr          1.4.1   2019-08-05 [1] CRAN (R 3.6.0)
- jsonlite      1.6     2018-12-07 [1] CRAN (R 3.6.0)
- knitr         1.24    2019-08-08 [1] CRAN (R 3.6.0)
- later         0.8.0   2019-02-11 [1] CRAN (R 3.6.0)
- lattice       0.20-38 2018-11-04 [1] CRAN (R 3.6.0)
- lazyeval      0.2.2   2019-03-15 [1] CRAN (R 3.6.0)
- lubridate     1.7.4   2018-04-11 [1] CRAN (R 3.6.0)
- magrittr      1.5     2014-11-22 [1] CRAN (R 3.6.0)
- memoise       1.1.0   2017-04-21 [1] CRAN (R 3.6.0)
- modelr        0.1.5   2019-08-08 [1] CRAN (R 3.6.0)
- munsell       0.5.0   2018-06-12 [1] CRAN (R 3.6.0)
- nlme          3.1-141 2019-08-01 [1] CRAN (R 3.6.0)
- pillar        1.4.2   2019-06-29 [1] CRAN (R 3.6.0)
- pkgbuild      1.0.6   2019-10-09 [1] CRAN (R 3.6.0)
- pkgconfig     2.0.2   2018-08-16 [1] CRAN (R 3.6.0)
- pkgload       1.0.2   2018-10-29 [1] CRAN (R 3.6.0)
- prettyunits   1.0.2   2015-07-13 [1] CRAN (R 3.6.0)
- processx      3.4.1   2019-07-18 [1] CRAN (R 3.6.0)
- promises      1.0.1   2018-04-13 [1] CRAN (R 3.6.0)
- ps            1.3.0   2018-12-21 [1] CRAN (R 3.6.0)
- purrr       * 0.3.3   2019-10-18 [1] CRAN (R 3.6.0)
- R6            2.4.0   2019-02-14 [1] CRAN (R 3.6.0)
- Rcpp          1.0.2   2019-07-25 [1] CRAN (R 3.6.0)
- readr       * 1.3.1   2018-12-21 [1] CRAN (R 3.6.0)
- readxl        1.3.1   2019-03-13 [1] CRAN (R 3.6.0)
- remotes       2.1.1   2020-02-15 [1] CRAN (R 3.6.0)
- rlang         0.4.4   2020-01-28 [1] CRAN (R 3.6.0)
- rmarkdown     1.15    2019-08-21 [1] CRAN (R 3.6.0)
- rprojroot     1.3-2   2018-01-03 [1] CRAN (R 3.6.0)
- rstudioapi    0.10    2019-03-19 [1] CRAN (R 3.6.0)
- rvest         0.3.4   2019-05-15 [1] CRAN (R 3.6.0)
- scales        1.0.0   2018-08-09 [1] CRAN (R 3.6.0)
- sessioninfo   1.1.1   2018-11-05 [1] CRAN (R 3.6.0)
- stringi       1.4.3   2019-03-12 [1] CRAN (R 3.6.0)
- stringr     * 1.4.0   2019-02-10 [1] CRAN (R 3.6.0)
- testthat      2.3.1   2019-12-01 [1] CRAN (R 3.6.0)
- tibble      * 2.1.3   2019-06-06 [1] CRAN (R 3.6.0)
- tidyr       * 0.8.3   2019-03-01 [1] CRAN (R 3.6.0)
- tidyselect    0.2.5   2018-10-11 [1] CRAN (R 3.6.0)
- tidyverse   * 1.2.1   2017-11-14 [1] CRAN (R 3.6.0)
- usethis       1.5.1   2019-07-04 [1] CRAN (R 3.6.0)
- vctrs         0.2.0   2019-07-05 [1] CRAN (R 3.6.0)
- whisker       0.4     2019-08-28 [1] CRAN (R 3.6.0)
- withr         2.1.2   2018-03-15 [1] CRAN (R 3.6.0)
- workflowr     1.6.0   2019-12-19 [1] CRAN (R 3.6.0)
- xfun          0.9     2019-08-21 [1] CRAN (R 3.6.0)
- xml2          1.2.2   2019-08-09 [1] CRAN (R 3.6.0)
- yaml          2.2.0   2018-07-25 [1] CRAN (R 3.6.0)
- zeallot       0.1.0   2018-01-28 [1] CRAN (R 3.6.0)
+ package     * version  date       lib source        
+ assertthat    0.2.1    2019-03-21 [1] CRAN (R 3.6.0)
+ backports     1.1.4    2019-04-10 [1] CRAN (R 3.6.0)
+ broom         0.5.2    2019-04-07 [1] CRAN (R 3.6.0)
+ callr         3.3.1    2019-07-18 [1] CRAN (R 3.6.0)
+ cellranger    1.1.0    2016-07-27 [1] CRAN (R 3.6.0)
+ cli           1.1.0    2019-03-19 [1] CRAN (R 3.6.0)
+ colorspace    1.4-1    2019-03-18 [1] CRAN (R 3.6.0)
+ crayon        1.3.4    2017-09-16 [1] CRAN (R 3.6.0)
+ desc          1.2.0    2018-05-01 [1] CRAN (R 3.6.0)
+ devtools      2.2.2    2020-02-17 [1] CRAN (R 3.6.0)
+ digest        0.6.20   2019-07-04 [1] CRAN (R 3.6.0)
+ dplyr       * 0.8.3    2019-07-04 [1] CRAN (R 3.6.0)
+ edgeR       * 3.26.7   2019-08-13 [1] Bioconductor  
+ ellipsis      0.3.0    2019-09-20 [1] CRAN (R 3.6.0)
+ evaluate      0.14     2019-05-28 [1] CRAN (R 3.6.0)
+ farver        1.1.0    2018-11-20 [1] CRAN (R 3.6.0)
+ forcats     * 0.4.0    2019-02-17 [1] CRAN (R 3.6.0)
+ fs            1.3.1    2019-05-06 [1] CRAN (R 3.6.0)
+ generics      0.0.2    2018-11-29 [1] CRAN (R 3.6.0)
+ ggforce       0.3.1    2019-08-20 [1] CRAN (R 3.6.0)
+ ggplot2     * 3.2.1    2019-08-10 [1] CRAN (R 3.6.0)
+ ggraph      * 1.0.2    2018-07-07 [1] CRAN (R 3.6.0)
+ ggrepel     * 0.8.1    2019-05-07 [1] CRAN (R 3.6.0)
+ git2r         0.26.1   2019-06-29 [1] CRAN (R 3.6.0)
+ glue          1.3.1    2019-03-12 [1] CRAN (R 3.6.0)
+ gridExtra     2.3      2017-09-09 [1] CRAN (R 3.6.0)
+ gtable        0.3.0    2019-03-25 [1] CRAN (R 3.6.0)
+ haven         2.1.1    2019-07-04 [1] CRAN (R 3.6.0)
+ here          0.1      2017-05-28 [1] CRAN (R 3.6.0)
+ highr         0.8      2019-03-20 [1] CRAN (R 3.6.0)
+ hms           0.5.1    2019-08-23 [1] CRAN (R 3.6.0)
+ htmltools     0.3.6    2017-04-28 [1] CRAN (R 3.6.0)
+ httpuv        1.5.1    2019-04-05 [1] CRAN (R 3.6.0)
+ httr          1.4.1    2019-08-05 [1] CRAN (R 3.6.0)
+ igraph        1.2.4.1  2019-04-22 [1] CRAN (R 3.6.0)
+ jsonlite      1.6      2018-12-07 [1] CRAN (R 3.6.0)
+ knitr         1.24     2019-08-08 [1] CRAN (R 3.6.0)
+ labeling      0.3      2014-08-23 [1] CRAN (R 3.6.0)
+ later         0.8.0    2019-02-11 [1] CRAN (R 3.6.0)
+ lattice       0.20-38  2018-11-04 [1] CRAN (R 3.6.0)
+ lazyeval      0.2.2    2019-03-15 [1] CRAN (R 3.6.0)
+ limma       * 3.40.6   2019-07-26 [1] Bioconductor  
+ locfit        1.5-9.1  2013-04-20 [1] CRAN (R 3.6.0)
+ lubridate     1.7.4    2018-04-11 [1] CRAN (R 3.6.0)
+ magrittr    * 1.5      2014-11-22 [1] CRAN (R 3.6.0)
+ MASS          7.3-51.4 2019-03-31 [1] CRAN (R 3.6.0)
+ memoise       1.1.0    2017-04-21 [1] CRAN (R 3.6.0)
+ modelr        0.1.5    2019-08-08 [1] CRAN (R 3.6.0)
+ munsell       0.5.0    2018-06-12 [1] CRAN (R 3.6.0)
+ nlme          3.1-141  2019-08-01 [1] CRAN (R 3.6.0)
+ pander      * 0.6.3    2018-11-06 [1] CRAN (R 3.6.0)
+ pillar        1.4.2    2019-06-29 [1] CRAN (R 3.6.0)
+ pkgbuild      1.0.6    2019-10-09 [1] CRAN (R 3.6.0)
+ pkgconfig     2.0.2    2018-08-16 [1] CRAN (R 3.6.0)
+ pkgload       1.0.2    2018-10-29 [1] CRAN (R 3.6.0)
+ plyr        * 1.8.4    2016-06-08 [1] CRAN (R 3.6.0)
+ polyclip      1.10-0   2019-03-14 [1] CRAN (R 3.6.0)
+ prettyunits   1.0.2    2015-07-13 [1] CRAN (R 3.6.0)
+ processx      3.4.1    2019-07-18 [1] CRAN (R 3.6.0)
+ promises      1.0.1    2018-04-13 [1] CRAN (R 3.6.0)
+ ps            1.3.0    2018-12-21 [1] CRAN (R 3.6.0)
+ purrr       * 0.3.3    2019-10-18 [1] CRAN (R 3.6.0)
+ R6            2.4.0    2019-02-14 [1] CRAN (R 3.6.0)
+ Rcpp          1.0.2    2019-07-25 [1] CRAN (R 3.6.0)
+ readr       * 1.3.1    2018-12-21 [1] CRAN (R 3.6.0)
+ readxl      * 1.3.1    2019-03-13 [1] CRAN (R 3.6.0)
+ remotes       2.1.1    2020-02-15 [1] CRAN (R 3.6.0)
+ rlang         0.4.4    2020-01-28 [1] CRAN (R 3.6.0)
+ rmarkdown     1.15     2019-08-21 [1] CRAN (R 3.6.0)
+ rprojroot     1.3-2    2018-01-03 [1] CRAN (R 3.6.0)
+ rstudioapi    0.10     2019-03-19 [1] CRAN (R 3.6.0)
+ rvest         0.3.4    2019-05-15 [1] CRAN (R 3.6.0)
+ scales      * 1.0.0    2018-08-09 [1] CRAN (R 3.6.0)
+ sessioninfo   1.1.1    2018-11-05 [1] CRAN (R 3.6.0)
+ stringi       1.4.3    2019-03-12 [1] CRAN (R 3.6.0)
+ stringr     * 1.4.0    2019-02-10 [1] CRAN (R 3.6.0)
+ testthat      2.3.1    2019-12-01 [1] CRAN (R 3.6.0)
+ tibble      * 2.1.3    2019-06-06 [1] CRAN (R 3.6.0)
+ tidygraph   * 1.1.2    2019-02-18 [1] CRAN (R 3.6.0)
+ tidyr       * 0.8.3    2019-03-01 [1] CRAN (R 3.6.0)
+ tidyselect    0.2.5    2018-10-11 [1] CRAN (R 3.6.0)
+ tidyverse   * 1.2.1    2017-11-14 [1] CRAN (R 3.6.0)
+ tweenr        1.0.1    2018-12-14 [1] CRAN (R 3.6.0)
+ usethis       1.5.1    2019-07-04 [1] CRAN (R 3.6.0)
+ vctrs         0.2.0    2019-07-05 [1] CRAN (R 3.6.0)
+ viridis       0.5.1    2018-03-29 [1] CRAN (R 3.6.0)
+ viridisLite   0.3.0    2018-02-01 [1] CRAN (R 3.6.0)
+ whisker       0.4      2019-08-28 [1] CRAN (R 3.6.0)
+ withr         2.1.2    2018-03-15 [1] CRAN (R 3.6.0)
+ workflowr     1.6.0    2019-12-19 [1] CRAN (R 3.6.0)
+ xfun          0.9      2019-08-21 [1] CRAN (R 3.6.0)
+ xml2          1.2.2    2019-08-09 [1] CRAN (R 3.6.0)
+ yaml          2.2.0    2018-07-25 [1] CRAN (R 3.6.0)
+ zeallot       0.1.0    2018-01-28 [1] CRAN (R 3.6.0)
 
 [1] /Library/Frameworks/R.framework/Versions/3.6/Resources/library</code></pre>
+</div>
 </div>
 
 
@@ -950,6 +815,8 @@ footer is added to webpages before the MathJax javascript. -->
 </script>
 
 
+</div>
+</div>
 
 </div>
 
@@ -987,6 +854,32 @@ $(document).ready(function () {
 });
 </script>
 
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
 
 <!-- dynamically load mathjax for compatibility with self-contained -->
 <script>

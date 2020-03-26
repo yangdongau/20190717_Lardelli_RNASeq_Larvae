@@ -77,7 +77,7 @@ dgeList %>%
   guides(fill = FALSE) 
 ```
 
-```{r plotCABZ01034698, echo=FALSE, fig.cap = "Expression of *fthl31* across all samples."}
+```{r plotCABZ01034698, echo=FALSE, fig.cap = "Expression of *CABZ01034698* across all samples."}
 dgeList %>%
 	cpm(log = TRUE) %>%
 	.["ENSDARG00000099511",] %>%
@@ -116,7 +116,7 @@ dgeList %>%
   guides(fill = FALSE) 
 ```
 
-```{r plotsi:ch211-213a13.2, echo=FALSE, fig.cap = "Expression of *si:ch211-11p18.6* across all samples."}
+```{r plotsi:ch211-213a13.2, echo=FALSE, fig.cap = "Expression of *si:ch211-213a13.2* across all samples."}
 dgeList %>%
 	cpm(log = TRUE) %>%
 	.["ENSDARG00000093024",] %>%
