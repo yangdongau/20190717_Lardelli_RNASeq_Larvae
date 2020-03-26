@@ -30,4 +30,4 @@ Results from all steps can be found at:
 1. [DE Gene Analysis](1_DE_gene_analysis.html)
 2. [Goseq Analysis & IRE enrichment test](2_Goseq_analysis_and_IRE_enrichment_test.html)
 3. [GSEA](3_GSEA.html)
-4. [DE gene omparison with 6month brain and validating qPCR plot](4_DE_gene_comparison_with_6month_brain_and_validating_qPCR_plot.Rmd)
+4. [DE gene omparison with 6month brain and validating qPCR plot](4_DE_gene_comparison_with_6month_brain_and_validating_qPCR_plot.html)
