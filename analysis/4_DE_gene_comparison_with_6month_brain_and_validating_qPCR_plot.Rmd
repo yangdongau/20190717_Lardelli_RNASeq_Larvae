@@ -53,8 +53,12 @@ sixmonthtopTable <- read_excel(here::here("files", "6monthDEgenes.xlsx"))
 commonDE <- topTable %>%
   dplyr::filter(FDR < 0.01) %>%
   dplyr::filter(ensembl_gene_id %in% sixmonthtopTable$`Ensembl ID`) %>%
-  dplyr::select(ensembl_gene_id, external_gene_name) %>%
-    pander(
+  dplyr::select(ensembl_gene_id, 
+                external_gene_name)
+commonDE %>%
+  pander(
+      style = "rmarkdown", 
+      split.tables = Inf,
       caption = "Common DE genes in 7 dpf larvae and 6 month brain.",
       justify = "lr"
   )
