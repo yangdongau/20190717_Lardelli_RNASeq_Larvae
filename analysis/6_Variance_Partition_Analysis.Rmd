@@ -1,0 +1,128 @@
+---
+title: "6_Variance_Partition_Analysis"
+author: "Yang & Steve"
+date: "07/10/2020"
+output: 
+  html_document: 
+    toc: yes
+    toc_float: yes
+    code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+### Setup
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+```{r packages}
+library(limma)
+library(edgeR)
+library(tidyverse)
+library(magrittr)
+library(pander)
+library(ggrepel)
+library(scales)
+library(variancePartition)
+library(lme4)
+
+theme_set(theme_bw())
+panderOptions("big.mark", ",")
+panderOptions("table.split.table", Inf)
+panderOptions("table.style", "rmarkdown")
+if (interactive()) setwd(here::here("analysis"))
+```
+
+# Data load
+
+```{r loaddgeList}
+dgeList <- read_rds(here::here("data","dgeList.rds"))
+entrezGenes <- dgeList$genes %>%
+  dplyr::filter(!is.na(entrez_gene)) %>%
+  unnest(entrez_gene) %>%
+  dplyr::rename(entrez_gene = entrez_gene)
+topTable <- file.path(here::here("output", "topTable.csv")) %>% 
+  read_csv()
+topTableDE <- file.path(here::here("output", "DEgenes.csv")) %>% 
+  read_csv()
+```
+
+# Application of variance partition analysis
+
+Pair and genotype are used as random factors.
+
+```{r variance partition analysis}
+geneExpr <- dgeList$counts
+
+form <- ~ (1|Genotype) + (1|pair)
+
+varPar <- fitExtractVarPartModel(geneExpr, form, dgeList$samples)
+
+vp <- sortCols(varPar)
+
+plotPercentBars(vp[1:10,] )
+
+plotVarPart(vp)
+
+head(varPar)
+```
+
+# Plot expression stratified by variables
+
+```{r}
+# Get the gene with the highest variation between genotypes
+i_genotype <- which.max(varPar$Genotype)
+GE_genotype <- data.frame(Expression = geneExpr[i_genotype,], Genotype = dgeList$samples$Genotype)
+
+# Plot expression stratified by Genotype
+label_genotype <- paste("Genotype:", format(varPar$Genotype[i_genotype]*100,
+        digits=3), "%")
+
+plotStratify(Expression ~ Genotype, GE_genotype, text=label_genotype, main=rownames(geneExpr)[i_genotype])
+
+
+# Get the gene with the highest variation among pairs
+i_pair <- which.max(varPar$pair)
+GE_pair <- data.frame(Expression = geneExpr[i_pair,], pair = dgeList$samples$pair)
+
+# Plot expression stratified by pair
+label_pair <- paste("Pair:", format(varPar$pair[i_pair]*100,
+        digits=3), "%")
+
+plotStratify(Expression ~ pair, GE_pair, text=label_pair, main=rownames(geneExpr)[i_pair])
+# no colour
+plotStratify(Expression ~ pair, GE_pair, colorBy = NULL, text=label_pair, main=rownames(geneExpr)[i_pair])
+```
+
+```{r gene list of highest variance}
+i_genotype_list <- varPar[order(-varPar$Genotype),]
+
+i_genotype_list <- cbind(rownames(i_genotype_list), i_genotype_list)
+rownames(i_genotype_list) <- NULL
+colnames(i_genotype_list) <- c("gene_id","Genotype","pair","Residuals")
+
+gene_names <- dgeList$genes %>%
+  dplyr::select(external_gene_name)
+gene_names <- cbind(rownames(gene_names),gene_names)
+rownames(gene_names) <- NULL
+colnames(gene_names) <- c("gene_id", "gene_name")
+
+i_genotype_list <- i_genotype_list %>% 
+  left_join(gene_names)
+i_genotype_list[1:10,]
+```
+
+# Add Genotype column to DE gene list
+```{r}
+i_genotype_list_genotype <- i_genotype_list %>%
+  dplyr::select(gene_id, Genotype)
+colnames(i_genotype_list_genotype) <- c("ensembl_gene_id","Genotype")
+
+topTableDE_genotype <- topTableDE %>%
+  left_join(i_genotype_list_genotype)
+# Save results
+write.csv(topTableDE_genotype, here::here("output", "DEgenes_with_genotype.csv"))
+```
+
+

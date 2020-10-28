@@ -27,6 +27,7 @@ library(pander)
 library(ggrepel)
 library(scales)
 library(RUVSeq)
+
 theme_set(theme_bw())
 panderOptions("big.mark", ",")
 panderOptions("table.split.table", Inf)
@@ -155,7 +156,7 @@ summary(pca)$importance %>% pander(split.tables = Inf)
 ```
 
 
-```{r plotPCA, echo=FALSE, fig.cap = "PCA of all samples. Point sizes indicate library sizes with the combination of PC1 & PC2 appearing to capture a considerable amount of this variation."}
+```{r plotPCA, echo=FALSE, fig.cap = "PCA of all samples."}
 pca$x %>%
 	as.data.frame() %>%
 	rownames_to_column("sample") %>%
@@ -275,7 +276,7 @@ pcaRUV$x %>%
   ggplot(aes(PC1, PC2, colour = Genotype)) +
   geom_point() +
   geom_text_repel(aes(label = pair), show.legend = FALSE) +
-  stat_ellipse(aes(fill = Genotype), geom = "polygon", alpha = 0.05) +
+  # stat_ellipse(aes(fill = Genotype), geom = "polygon", alpha = 0.05) +
   xlab(
     paste0(
       "PC1 (", percent(summary(pcaRUV)$importance[2, "PC1"]), ")"

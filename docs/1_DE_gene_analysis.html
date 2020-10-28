@@ -406,7 +406,7 @@ div.section {
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2020-02-27
+<strong>Last updated:</strong> 2020-10-28
 </p>
 <p>
 <strong>Checks:</strong> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 6 <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span> 1
@@ -430,7 +430,7 @@ This reproducible <a href="http://rmarkdown.rstudio.com">R Markdown</a> analysis
 </div>
 <div id="strongRMarkdownfilestronguncommittedchanges" class="panel-collapse collapse">
 <div class="panel-body">
-<p>The R Markdown file has staged changes. To know which version of the R Markdown file created these results, you’ll want to first commit it to the Git repo. If you’re still working on the analysis, you can ignore this warning. When you’re finished, you can run <code>wflow_publish</code> to commit the R Markdown file and build the HTML.</p>
+<p>The R Markdown file has unstaged changes. To know which version of the R Markdown file created these results, you’ll want to first commit it to the Git repo. If you’re still working on the analysis, you can ignore this warning. When you’re finished, you can run <code>wflow_publish</code> to commit the R Markdown file and build the HTML.</p>
 </div>
 </div>
 </div>
@@ -497,10 +497,10 @@ This reproducible <a href="http://rmarkdown.rstudio.com">R Markdown</a> analysis
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomyangdongau20190717LardelliRNASeqLarvaetree0e58bdbef7000f4a9cb15e1be4d767e799e39f7btargetblank0e58bdba"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> <a href="https://github.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/tree/0e58bdbef7000f4a9cb15e1be4d767e799e39f7b" target="_blank">0e58bdb</a> </a>
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomyangdongau20190717LardelliRNASeqLarvaetreee720795f9e784231b99f7000a35840db2e976649targetblanke720795a"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> <a href="https://github.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/tree/e720795f9e784231b99f7000a35840db2e976649" target="_blank">e720795</a> </a>
 </p>
 </div>
-<div id="strongRepositoryversionstrongahrefhttpsgithubcomyangdongau20190717LardelliRNASeqLarvaetree0e58bdbef7000f4a9cb15e1be4d767e799e39f7btargetblank0e58bdba" class="panel-collapse collapse">
+<div id="strongRepositoryversionstrongahrefhttpsgithubcomyangdongau20190717LardelliRNASeqLarvaetreee720795f9e784231b99f7000a35840db2e976649targetblanke720795a" class="panel-collapse collapse">
 <div class="panel-body">
 <p>
 Great! You are using Git for version control. Tracking code development and connecting the code version to the results is critical for reproducibility. The version displayed above was the version of the Git repository at the time these results were generated. <br><br> Note that you need to be careful to ensure that all relevant files for the analysis have been committed to Git prior to generating the results (you can use <code>wflow_publish</code> or <code>wflow_git_commit</code>). workflowr only checks the R Markdown file, but you know if there are other scripts or data files that it depends on. Below is the status of the Git repository when the results were generated:
@@ -515,27 +515,37 @@ Ignored files:
     Ignored:    analysis/.DS_Store
     Ignored:    analysis/.Rhistory
     Ignored:    analysis/.Rproj.user/
-    Ignored:    analysis/PairedAnalysiswithRUV_cache/
-    Ignored:    analysis/PairedAnalysiswithRUV_files/
+    Ignored:    analysis/5_WGCNA_cache/
     Ignored:    data/.DS_Store
     Ignored:    data/0_rawData/.DS_Store
     Ignored:    data/1_trimmedData/.DS_Store
     Ignored:    data/2_alignedData/.DS_Store
     Ignored:    files/
+    Ignored:    keggdiagram/.DS_Store
     Ignored:    output/.DS_Store
 
 Untracked files:
-    Untracked:  analysis/figure/
-    Untracked:  site_libs/
+    Untracked:  analysis/here::here
+    Untracked:  output/DEgenes_with_genotype.csv
+    Untracked:  output/GOenrichment_enrichmentTable.csv
+    Untracked:  output/black_genes.csv
+    Untracked:  output/cyan_genes.csv
+    Untracked:  output/green_genes.csv
+    Untracked:  output/greenyellow_genes.csv
+    Untracked:  output/grey60_genes.csv
+    Untracked:  output/lightcyan_genes.csv
+    Untracked:  output/purple_genes.csv
 
 Unstaged changes:
     Modified:   analysis/1_DE_gene_analysis.Rmd
+    Modified:   analysis/5_WGCNA.Rmd
+    Modified:   analysis/6_Variance_Partition_Analysis.Rmd
     Modified:   analysis/index.Rmd
 
 Staged changes:
-    Deleted:    analysis/1_DE-gene-analysis.html
-    Modified1:  analysis/1_DE gene analysis.Rmd
-    Modified2:  analysis/1_DE_gene_analysis.Rmd
+    Modified:   .RData
+    New:        analysis/5_WGCNA.Rmd
+    New:        analysis/6_Variance_Partition_Analysis.Rmd
 
 </code></pre>
 <p>
@@ -548,9 +558,86 @@ Note that any generated files, e.g. HTML, png, CSS, etc., are not included in t
 <hr>
 </div>
 <div id="versions" class="tab-pane fade">
+
 <p>
-There are no past versions. Publish this analysis with <code>wflow_publish()</code> to start tracking its development.
+These are the previous versions of the R Markdown and HTML files. If you’ve configured a remote Git repository (see <code>?wflow_git_remote</code>), click on the hyperlinks in the table below to view them.
 </p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/blob/075ff498278da88b007b78bc5b0548982b614317/analysis/1_DE_gene_analysis.Rmd" target="_blank">075ff49</a>
+</td>
+<td>
+yangdongau
+</td>
+<td>
+2020-03-12
+</td>
+<td>
+Add in description and gene_biotype
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/blob/6c617058e01a37f9666e2061b9c8984b850a50ca/analysis/1_DE_gene_analysis.Rmd" target="_blank">6c61705</a>
+</td>
+<td>
+yangdongau
+</td>
+<td>
+2020-02-27
+</td>
+<td>
+Compiled DE Gene analysis
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/6c617058e01a37f9666e2061b9c8984b850a50ca/docs/1_DE_gene_analysis.html" target="_blank">6c61705</a>
+</td>
+<td>
+yangdongau
+</td>
+<td>
+2020-02-27
+</td>
+<td>
+Compiled DE Gene analysis
+</td>
+</tr>
+</tbody>
+</table>
+</div>
 <hr>
 </div>
 </div>
@@ -566,6 +653,7 @@ library(pander)
 library(ggrepel)
 library(scales)
 library(RUVSeq)
+
 theme_set(theme_bw())
 panderOptions(&quot;big.mark&quot;, &quot;,&quot;)
 panderOptions(&quot;table.split.table&quot;, Inf)
@@ -625,10 +713,85 @@ genes2keep &lt;- cpm(counts) %&gt;%
 <pre class="r"><code>plotDensities(cpm(counts, log = TRUE), legend = FALSE, main = &quot;a) All genes&quot;)
 plotDensities(cpm(counts[genes2keep,], log = TRUE), legend = FALSE, main = &quot;b) Retained genes&quot;)</code></pre>
 <div class="figure" style="text-align: center">
-<img src="figure/1_DE_gene_analysis.Rmd/plotDensities-1.png" alt="Distribution of logCPM values for a) all and b) retained genes" width="384" /><img src="figure/1_DE_gene_analysis.Rmd/plotDensities-2.png" alt="Distribution of logCPM values for a) all and b) retained genes" width="384" />
+<p><img src="figure/1_DE_gene_analysis.Rmd/plotDensities-1.png" alt="Distribution of logCPM values for a) all and b) retained genes" width="384" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-plotDensities-1">
+Past versions of plotDensities-1.png
+</button>
+</p>
+<div id="fig-plotDensities-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/blob/6c617058e01a37f9666e2061b9c8984b850a50ca/docs/figure/1_DE_gene_analysis.Rmd/plotDensities-1.png" target="_blank">6c61705</a>
+</td>
+<td>
+yangdongau
+</td>
+<td>
+2020-02-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<img src="figure/1_DE_gene_analysis.Rmd/plotDensities-2.png" alt="Distribution of logCPM values for a) all and b) retained genes" width="384" />
 <p class="caption">
 Distribution of logCPM values for a) all and b) retained genes
 </p>
+</div>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-plotDensities-2">
+Past versions of plotDensities-2.png
+</button>
+</p>
+<div id="fig-plotDensities-2" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/blob/6c617058e01a37f9666e2061b9c8984b850a50ca/docs/figure/1_DE_gene_analysis.Rmd/plotDensities-2.png" target="_blank">6c61705</a>
+</td>
+<td>
+yangdongau
+</td>
+<td>
+2020-02-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
 </div>
 <pre class="r"><code>dgeList &lt;- counts %&gt;%
   .[genes2keep,] %&gt;%
@@ -645,6 +808,7 @@ Distribution of logCPM values for a) all and b) retained genes
                 ensembl_gene_id = gene_id,
                 chromosome_name = seqnames,
                 description,
+                gene_biotype,
                 external_gene_name = gene_name,
                 entrez_gene = entrezid.1,
                 aveLength,
@@ -749,10 +913,47 @@ Distribution of logCPM values for a) all and b) retained genes
 </tbody>
 </table>
 <div class="figure" style="text-align: center">
-<img src="figure/1_DE_gene_analysis.Rmd/plotPCA-1.png" alt="PCA of all samples. Point sizes indicate library sizes with the combination of PC1 &amp; PC2 appearing to capture a considerable amount of this variation." width="672" />
+<img src="figure/1_DE_gene_analysis.Rmd/plotPCA-1.png" alt="PCA of all samples." width="672" />
 <p class="caption">
-PCA of all samples. Point sizes indicate library sizes with the combination of PC1 &amp; PC2 appearing to capture a considerable amount of this variation.
+PCA of all samples.
 </p>
+</div>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-plotPCA-1">
+Past versions of plotPCA-1.png
+</button>
+</p>
+<div id="fig-plotPCA-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/blob/6c617058e01a37f9666e2061b9c8984b850a50ca/docs/figure/1_DE_gene_analysis.Rmd/plotPCA-1.png" target="_blank">6c61705</a>
+</td>
+<td>
+yangdongau
+</td>
+<td>
+2020-02-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
 </div>
 </div>
 <div id="dge-analysis" class="section level1">
@@ -789,11 +990,85 @@ deGenesSig &lt;- deGenes %&gt;%
 Volcano plot highlighting DE genes. Genes indicated in red were considered as DE, which receive a FDR &lt; 0.05.
 </p>
 </div>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-volcano-1">
+Past versions of volcano-1.png
+</button>
+</p>
+<div id="fig-volcano-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/blob/6c617058e01a37f9666e2061b9c8984b850a50ca/docs/figure/1_DE_gene_analysis.Rmd/volcano-1.png" target="_blank">6c61705</a>
+</td>
+<td>
+yangdongau
+</td>
+<td>
+2020-02-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <div class="figure" style="text-align: center">
 <img src="figure/1_DE_gene_analysis.Rmd/plotMA-1.png" alt="logFC plotted against expression level with significant DE genes shown in red." width="672" />
 <p class="caption">
 logFC plotted against expression level with significant DE genes shown in red.
 </p>
+</div>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-plotMA-1">
+Past versions of plotMA-1.png
+</button>
+</p>
+<div id="fig-plotMA-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/blob/6c617058e01a37f9666e2061b9c8984b850a50ca/docs/figure/1_DE_gene_analysis.Rmd/plotMA-1.png" target="_blank">6c61705</a>
+</td>
+<td>
+yangdongau
+</td>
+<td>
+2020-02-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
 </div>
 </div>
 </div>
@@ -906,7 +1181,7 @@ summary(pcaRUV)$importance %&gt;% pander(split.tables = Inf)    </code></pre>
   ggplot(aes(PC1, PC2, colour = Genotype)) +
   geom_point() +
   geom_text_repel(aes(label = pair), show.legend = FALSE) +
-  stat_ellipse(aes(fill = Genotype), geom = &quot;polygon&quot;, alpha = 0.05) +
+  # stat_ellipse(aes(fill = Genotype), geom = &quot;polygon&quot;, alpha = 0.05) +
   xlab(
     paste0(
       &quot;PC1 (&quot;, percent(summary(pcaRUV)$importance[2, &quot;PC1&quot;]), &quot;)&quot;
@@ -918,6 +1193,43 @@ summary(pcaRUV)$importance %&gt;% pander(split.tables = Inf)    </code></pre>
     )
   )</code></pre>
 <p><img src="figure/1_DE_gene_analysis.Rmd/plotPCA%202-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-no-spaces-plotPCA-2-1">
+Past versions of “plotPCA 2-1.png”
+</button>
+</p>
+<div id="fig-no-spaces-plotPCA-2-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/blob/6c617058e01a37f9666e2061b9c8984b850a50ca/docs/figure/1_DE_gene_analysis.Rmd/plotPCA 2-1.png" target="_blank">6c61705</a>
+</td>
+<td>
+yangdongau
+</td>
+<td>
+2020-02-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>expDesignRUV &lt;- model.matrix(~0 + pair + Genotype + W_1, dgeList$samples) %&gt;%
   set_colnames(str_replace(colnames(.), pattern = &quot;Genotype.+&quot;, &quot;Mutant&quot;))</code></pre>
 <div id="recalculate-the-dispersions" class="section level2">
@@ -940,7 +1252,7 @@ summary(pcaRUV)$importance %&gt;% pander(split.tables = Inf)    </code></pre>
     rankstat = -sign(logFC)*log10(PValue)
   ) %&gt;%
   dplyr::select(
-    ensembl_gene_id, external_gene_name, logFC, logCPM, LR,
+    ensembl_gene_id, external_gene_name, description, gene_biotype, logFC, logCPM, LR,
   PValue, FDR, DE,aveGc, aveLength, rankstat
   ) %&gt;%
   arrange(PValue)
@@ -964,6 +1276,43 @@ topTable %&gt;%
   ) +
   scale_colour_manual(values = c(&quot;grey50&quot;, &quot;red&quot;))</code></pre>
 <p><img src="figure/1_DE_gene_analysis.Rmd/plotMA%202-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-no-spaces-plotMA-2-1">
+Past versions of “plotMA 2-1.png”
+</button>
+</p>
+<div id="fig-no-spaces-plotMA-2-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/blob/6c617058e01a37f9666e2061b9c8984b850a50ca/docs/figure/1_DE_gene_analysis.Rmd/plotMA 2-1.png" target="_blank">6c61705</a>
+</td>
+<td>
+yangdongau
+</td>
+<td>
+2020-02-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 <div id="check-the-volcano-plot" class="section level2">
 <h2>Check the volcano plot</h2>
@@ -980,6 +1329,43 @@ topTable %&gt;%
   ) +
   scale_colour_manual(values = c(&quot;grey50&quot;, &quot;red&quot;))</code></pre>
 <p><img src="figure/1_DE_gene_analysis.Rmd/plotvolcano-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-plotvolcano-1">
+Past versions of plotvolcano-1.png
+</button>
+</p>
+<div id="fig-plotvolcano-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/blob/6c617058e01a37f9666e2061b9c8984b850a50ca/docs/figure/1_DE_gene_analysis.Rmd/plotvolcano-1.png" target="_blank">6c61705</a>
+</td>
+<td>
+yangdongau
+</td>
+<td>
+2020-02-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 <div id="compare-the-two-lists" class="section level2">
 <h2>Compare the two lists</h2>
@@ -1002,6 +1388,43 @@ topTable %&gt;%
   geom_hline(yintercept = c(-1, 1)*0.5) +
   scale_colour_manual(values = c(&quot;green&quot;, &quot;grey50&quot;, &quot;red&quot;, &quot;blue&quot;))</code></pre>
 <p><img src="figure/1_DE_gene_analysis.Rmd/unnamed-chunk-5-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-5-1">
+Past versions of unnamed-chunk-5-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-5-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/blob/6c617058e01a37f9666e2061b9c8984b850a50ca/docs/figure/1_DE_gene_analysis.Rmd/unnamed-chunk-5-1.png" target="_blank">6c61705</a>
+</td>
+<td>
+yangdongau
+</td>
+<td>
+2020-02-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p>The 228 genes considered as DE using an FDR of 0.01 and logFC beyond the range <span class="math inline">\(\pm 0.5\)</span> were then inspected to confirm that the counts support their inclusion as DE.</p>
 <p>Here plot CPM for DE genes having a FDR below 0.01 and logFC beyond the range <span class="math inline">\(\pm 1.2\)</span></p>
 <pre class="r"><code>ruv$normalizedCounts %&gt;%
@@ -1023,6 +1446,43 @@ topTable %&gt;%
     theme(legend.position = &quot;none&quot;) +
   labs(y = &quot;logCPM&quot;)</code></pre>
 <p><img src="figure/1_DE_gene_analysis.Rmd/unnamed-chunk-6-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-6-1">
+Past versions of unnamed-chunk-6-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-6-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/yangdongau/20190717_Lardelli_RNASeq_Larvae/blob/6c617058e01a37f9666e2061b9c8984b850a50ca/docs/figure/1_DE_gene_analysis.Rmd/unnamed-chunk-6-1.png" target="_blank">6c61705</a>
+</td>
+<td>
+yangdongau
+</td>
+<td>
+2020-02-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 </div>
 <div id="data-export" class="section level1">
@@ -1049,7 +1509,7 @@ write_rds(dgeList, here::here(&quot;data&quot;, &quot;dgeList.rds&quot;), compre
  collate  en_AU.UTF-8                 
  ctype    en_AU.UTF-8                 
  tz       Australia/Adelaide          
- date     2020-02-27                  
+ date     2020-10-28                  
 
 ─ Packages ──────────────────────────────────────────────────────────────
  package                * version   date       lib source        
@@ -1063,7 +1523,7 @@ write_rds(dgeList, here::here(&quot;data&quot;, &quot;dgeList.rds&quot;), compre
  Biobase                * 2.44.0    2019-05-02 [1] Bioconductor  
  BiocFileCache          * 1.8.0     2019-05-02 [1] Bioconductor  
  BiocGenerics           * 0.30.0    2019-05-02 [1] Bioconductor  
- BiocManager              1.30.4    2018-11-13 [1] CRAN (R 3.6.0)
+ BiocManager              1.30.10   2019-11-16 [1] CRAN (R 3.6.0)
  BiocParallel           * 1.18.1    2019-08-06 [1] Bioconductor  
  biomaRt                  2.40.4    2019-08-19 [1] Bioconductor  
  Biostrings             * 2.52.0    2019-05-02 [1] Bioconductor  
@@ -1184,6 +1644,7 @@ write_rds(dgeList, here::here(&quot;data&quot;, &quot;dgeList.rds&quot;), compre
  tidyverse              * 1.2.1     2017-11-14 [1] CRAN (R 3.6.0)
  usethis                  1.5.1     2019-07-04 [1] CRAN (R 3.6.0)
  vctrs                    0.2.0     2019-07-05 [1] CRAN (R 3.6.0)
+ whisker                  0.4       2019-08-28 [1] CRAN (R 3.6.0)
  withr                    2.1.2     2018-03-15 [1] CRAN (R 3.6.0)
  workflowr                1.6.0     2019-12-19 [1] CRAN (R 3.6.0)
  xfun                     0.9       2019-08-21 [1] CRAN (R 3.6.0)
