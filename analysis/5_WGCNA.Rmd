@@ -92,7 +92,7 @@ B <- dgeList %>%
   ggtitle("After filtering low exp genes")
 
 # Retain genes with sufficiently high variation in expression across all samples.
-# Here we define sufficiently high variation as having a standard deviation above the 25th quantile (so not in bottom 25%).
+# Here we define sufficiently high variation as having a standard deviation above 75% (so in top 25%).
 variableGenes <- rowSds(cpm(dgeList, log=TRUE)) >  quantile(rowSds(cpm(dgeList, log=TRUE)), 0.75)
 
 # Density plot of gene expression distribution after filtering out low variance genes. 
