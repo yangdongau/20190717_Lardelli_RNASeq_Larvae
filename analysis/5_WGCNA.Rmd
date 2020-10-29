@@ -64,7 +64,7 @@ topTable <- file.path(here::here("output", "topTable.csv")) %>%
 
 # Filtering
 
-Only keep the genes of high expression (cpm > 1.5 in 6 samples) and high variation (not in the bottom 25%).
+Only keep the genes of high expression (cpm > 1.5 in 6 samples) and high variation (in the top 25%).
 
 ```{r}
 A <- dgeList %>% 
